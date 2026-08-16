@@ -111,7 +111,7 @@ void OnDeath();
 ### Use MegaLights for Complex Lighting (Production-Ready in 5.8)
 
 ```cpp
-// Enable: Project Settings > Engine > Rendering > Megalights = Enabled
+// Enable: Project Settings > Engine > Rendering > MegaLights = Enabled
 // Hundreds of dynamic shadow-casting area lights, 60fps target on PS5/XSX
 // 5.8 adds transmission support, froxel translucency, and debugging tools
 ```

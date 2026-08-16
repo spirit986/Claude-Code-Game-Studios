@@ -16,7 +16,7 @@ Always cross-reference this directory before suggesting Unreal API calls.
 
 > **UE 5.8 is the final planned UE5 release.** Epic has stated 5.8 closes out the
 > UE5 roadmap as work ramps up on UE6. Prefer the production-ready 5.8 systems
-> (MegaLights, Iris, Mutable, Movie Render Graph) and fix deprecation warnings
+> (MegaLights, Iris, Mutable) and fix deprecation warnings
 > now rather than carrying them into a future UE6 migration.
 
 ## Post-Cutoff Version Timeline
@@ -24,7 +24,7 @@ Always cross-reference this directory before suggesting Unreal API calls.
 | Version | Release | Risk Level | Key Theme |
 |---------|---------|------------|-----------|
 | 5.4 | ~Mid 2025 | HIGH | Motion Design tools, animation improvements, PCG enhancements |
-| 5.5 | ~Sep 2025 | HIGH | Megalights (millions of lights), animation authoring, MegaCity demo |
+| 5.5 | ~Sep 2025 | HIGH | MegaLights (massive dynamic light counts), animation authoring, MegaCity demo |
 | 5.6 | ~Oct 2025 | MEDIUM | Performance optimizations, bug fixes |
 | 5.7 | Nov 2025 | HIGH | PCG production-ready, Substrate production-ready, AI assistant |
 | 5.8 | Jun 2026 | HIGH | MegaLights production-ready, Mesh Terrain, Lumen Lite, Iris production-ready, WASAPI audio default — final UE5 release |
@@ -34,7 +34,7 @@ Always cross-reference this directory before suggesting Unreal API calls.
 ### Breaking Changes
 - **Substrate Material System**: New material framework (replaces legacy materials)
 - **PCG (Procedural Content Generation)**: Production-ready, major API changes
-- **Megalights**: New lighting system — production-ready in 5.8 (millions of dynamic lights)
+- **MegaLights**: New lighting system — production-ready in 5.8 (hundreds of dynamic shadow-casting lights)
 - **Animation Authoring**: New rigging and animation tools
 - **WASAPI Audio Backend (5.8)**: Windows default audio backend switched from XAudio2 to WASAPI
 - **Enhanced Input + CommonUI Unified (5.8)**: Single input system eliminating duplicate input assets

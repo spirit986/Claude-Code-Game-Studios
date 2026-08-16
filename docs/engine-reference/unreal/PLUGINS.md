@@ -130,7 +130,7 @@ These are NOT part of the core engine but are commonly used for specific game ty
 ### 🟡 Mutable (Character Customization)
 - **Purpose:** Runtime character/object customization (mesh, texture, morph variation)
 - **When to use:** Character creators, equipment visualization, NPC variety
-- **Status:** Production-Ready (UE 5.8) — was Experimental in 5.5-5.7; 5.8 adds dataless customizable objects and skeletal mesh support
+- **Status:** Production-Ready (UE 5.8) — was Experimental since UE 5.2; 5.8 adds dataless customizable objects and skeletal mesh support
 - **Plugin:** `Mutable` (built-in, enable in Plugins)
 - **Official:** https://docs.unrealengine.com/5.8/en-US/mutable-in-unreal-engine/
 

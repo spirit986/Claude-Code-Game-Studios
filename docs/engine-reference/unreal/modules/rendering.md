@@ -24,6 +24,7 @@ UE 5.8 rendering stack:
 - **X-Rite AXF material import** via Substrate
 - **Mesh Terrain (Experimental)**: mesh-based terrain (caves, overhangs) on Nanite + virtual textures — not yet production-ready
 - **FSSS (Experimental)**: fog screen-space scattering approximation for volumetrics
+- **World Partition Insights**: per-cell streaming analysis and debugging for World Partition worlds
 - **Mobile**: multi-pass deferred rendering is now the mobile default (forward opt-in)
 
 ---
@@ -78,16 +79,17 @@ MeshComp->SetStaticMesh(NaniteMesh); // Automatically uses Nanite if enabled
 
 ---
 
-## Megalights (UE 5.5+)
+## MegaLights (UE 5.5+, Production-Ready in 5.8)
 
-### Enable Megalights
+### Enable MegaLights
 
 ```cpp
-// Project Settings > Engine > Rendering > Megalights = Enabled
-// Supports millions of dynamic lights with minimal performance cost
+// Project Settings > Engine > Rendering > MegaLights = Enabled
+// Hundreds of dynamic shadow-casting area lights with minimal noise
+// 5.8 adds transmission support, froxel translucency, and debugging tools
 ```
 
-### Megalights Usage
+### MegaLights Usage
 
 ```cpp
 // Add point lights as usual
@@ -95,7 +97,8 @@ UPointLightComponent* Light = CreateDefaultSubobject<UPointLightComponent>(TEXT(
 Light->SetIntensity(5000.0f);
 Light->SetAttenuationRadius(500.0f);
 
-// Megalights automatically handles thousands/millions of these
+// MegaLights handles hundreds of shadow-casting lights at 60fps on current-gen consoles —
+// orders of magnitude more than the ~100-200 limit of the traditional pipeline
 ```
 
 ---

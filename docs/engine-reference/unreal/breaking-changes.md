@@ -43,7 +43,7 @@ PCG framework reached production-ready status with major API changes.
 
 ---
 
-### Megalights Rendering System
+### MegaLights Rendering System
 **Versions:** UE 5.5+ (experimental), 5.8 (production-ready)
 
 New lighting system supports massive numbers of dynamic, shadow-casting lights.
@@ -54,9 +54,9 @@ translucency, and new debugging tools. Targets 60fps on current-gen consoles.
 // ❌ OLD: Limited dynamic lights (clustered forward shading)
 // Max ~100-200 dynamic lights before performance degrades
 
-// ✅ NEW: Megalights (production-ready in 5.8)
+// ✅ NEW: MegaLights (production-ready in 5.8)
 // Hundreds of dynamic shadow-casting area lights with minimal noise
-// Enable: Project Settings > Engine > Rendering > Megalights
+// Enable: Project Settings > Engine > Rendering > MegaLights
 ```
 
 **Migration:** No code changes needed, but lighting behavior may differ. Test scenes after enabling.
@@ -198,7 +198,7 @@ When upgrading from UE 5.3 to UE 5.8:
 
 - [ ] Review Substrate materials (convert if ready for new system)
 - [ ] Audit PCG usage (update to production API if using experimental)
-- [ ] Test Megalights performance (production-ready in 5.8 — enable and benchmark)
+- [ ] Test MegaLights performance (production-ready in 5.8 — enable and benchmark)
 - [ ] Migrate legacy input to Enhanced Input
 - [ ] Convert high-poly meshes to Nanite
 - [ ] Update shaders for DX12 (Windows) or Metal 3 (macOS)
