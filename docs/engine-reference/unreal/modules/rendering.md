@@ -1,17 +1,30 @@
-# Unreal Engine 5.7 — Rendering Module Reference
+# Unreal Engine 5.8 — Rendering Module Reference
 
-**Last verified:** 2026-02-13
-**Knowledge Gap:** UE 5.7 has Megalights, production-ready Substrate, and Lumen improvements
+**Last verified:** 2026-08-16
+**Knowledge Gap:** MegaLights (production-ready in 5.8), production-ready Substrate, Lumen Lite (new in 5.8), Mesh Terrain (experimental in 5.8)
 
 ---
 
 ## Overview
 
-UE 5.7 rendering stack:
+UE 5.8 rendering stack:
 - **Lumen**: Real-time global illumination (default)
+- **Lumen Lite**: Medium-quality GI via Irradiance Fields — 2x faster than Lumen high quality (Beta in 5.8)
 - **Nanite**: Virtualized geometry for millions of triangles
-- **Megalights**: Support for millions of dynamic lights (NEW in 5.5+)
-- **Substrate**: Production-ready modular material system (NEW in 5.7)
+- **MegaLights**: Hundreds of dynamic shadow-casting area lights (production-ready in 5.8)
+- **Substrate**: Production-ready modular material system (since 5.7)
+
+---
+
+## What's New in UE 5.8
+
+- **MegaLights production-ready**: reduced noise, transmission support, froxel translucency, debugging tools; 60fps target on PS5/XSX
+- **Lumen Lite (Beta)**: Irradiance Fields with Probe Occlusion; use when full Lumen exceeds the frame budget
+- **Substrate NPR shading (Experimental)**: toon/stylized shading within Substrate
+- **X-Rite AXF material import** via Substrate
+- **Mesh Terrain (Experimental)**: mesh-based terrain (caves, overhangs) on Nanite + virtual textures — not yet production-ready
+- **FSSS (Experimental)**: fog screen-space scattering approximation for volumetrics
+- **Mobile**: multi-pass deferred rendering is now the mobile default (forward opt-in)
 
 ---
 
@@ -292,6 +305,6 @@ Console commands:
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.7/en-US/lumen-global-illumination-and-reflections-in-unreal-engine/
-- https://docs.unrealengine.com/5.7/en-US/nanite-virtualized-geometry-in-unreal-engine/
-- https://docs.unrealengine.com/5.7/en-US/substrate-materials-in-unreal-engine/
+- https://docs.unrealengine.com/5.8/en-US/lumen-global-illumination-and-reflections-in-unreal-engine/
+- https://docs.unrealengine.com/5.8/en-US/nanite-virtualized-geometry-in-unreal-engine/
+- https://docs.unrealengine.com/5.8/en-US/substrate-materials-in-unreal-engine/
