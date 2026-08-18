@@ -350,7 +350,7 @@ No files require manual merging in this release. All changes are to infrastructu
 | **Skill updates** | `/team-ui` — full UX pipeline (ux-design → ux-review → team phases) |
 | **Agent updates** | 14 specialist agents — `memory: project` added |
 | **Agent updates** | `prototyper` — `isolation: worktree` (throwaway work in isolated git branch) |
-| **Model routing** | Haiku/Sonnet/Opus tier assignments documented in coordination rules; skills declare their tier in frontmatter |
+| **Model routing** | Haiku/Sonnet/Opus tier assignments documented in coordination rules; skills declare their tier in frontmatter (the Haiku tier has since been retired — all former Haiku assignments are now Sonnet) |
 | **Directory CLAUDE.md** | Scaffolded `design/CLAUDE.md`, `src/CLAUDE.md`, `docs/CLAUDE.md` — path-scoped instructions for each directory |
 | **Pipeline integrity** | TR-ID stability, manifest versioning, ADR status gates, TR-ID reference not quote |
 | **GDD template** | `## Game Feel` section added (input responsiveness, animation targets, impact moments) |
@@ -528,6 +528,11 @@ The new `validate-skill-change.sh` hook reminds you to run `/skill-test` automat
 #### Model Tier Routing
 
 Skills are now explicitly assigned to Haiku, Sonnet, or Opus tiers based on task complexity. Read-only status checks use Haiku; complex multi-document synthesis uses Opus; everything else defaults to Sonnet. Tier assignments are documented in `.claude/docs/coordination-rules.md`.
+
+> **Superseded:** the Haiku tier has since been retired. Every agent and skill
+> formerly assigned to Haiku now runs on Sonnet, and new skills must not declare
+> `model: haiku`. See `.claude/docs/coordination-rules.md` for the current
+> two-tier (Sonnet/Opus) policy.
 
 #### Directory CLAUDE.md Files
 
