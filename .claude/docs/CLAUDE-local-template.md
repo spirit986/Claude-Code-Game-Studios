@@ -8,7 +8,7 @@ This file is gitignored and will not be committed.
 
 ## Model Preferences
 - Prefer Opus for complex design tasks
-- Use Haiku for quick lookups and simple edits
+- Use Sonnet for routine implementation, lookups, and simple edits
 
 ## Workflow Preferences
 - Always run tests after code changes

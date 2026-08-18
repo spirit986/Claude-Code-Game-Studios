@@ -14,22 +14,22 @@
 
 ## Model Tier Assignment
 
-Skills and agents are assigned to model tiers based on task complexity:
+Skills and agents are assigned to model tiers based on task complexity. This project
+does not use the Haiku tier: even nominally "status check" work (advice-giving,
+gap analysis, player-facing copy, crisis communication) routinely requires judgment
+that Haiku's tier is not intended for, so everything defaults to Sonnet or escalates
+to Opus.
 
 | Tier | Model | When to use |
 |------|-------|-------------|
-| **Haiku** | `claude-haiku-4-5-20251001` | Read-only status checks, formatting, simple lookups — no creative judgment needed |
-| **Sonnet** | `claude-sonnet-4-6` | Implementation, design authoring, analysis of individual systems — default for most work |
+| **Sonnet** | `claude-sonnet-4-6` | Implementation, design authoring, analysis of individual systems, status/reporting skills — default for all work |
 | **Opus** | `claude-opus-4-6` | Multi-document synthesis, high-stakes phase gate verdicts, cross-system holistic review |
-
-Skills with `model: haiku`: `/help`, `/sprint-status`, `/story-readiness`, `/scope-check`,
-`/project-stage-detect`, `/changelog`, `/patch-notes`, `/onboard`
 
 Skills with `model: opus`: `/review-all-gdds`, `/architecture-review`, `/gate-check`
 
-All other skills default to Sonnet. When creating new skills, assign Haiku if the
-skill only reads and formats; assign Opus if it must synthesize 5+ documents with
-high-stakes output; otherwise leave unset (Sonnet).
+All other skills and agents default to Sonnet. When creating new skills, assign Opus
+only if it must synthesize 5+ documents with high-stakes output; otherwise leave
+unset (Sonnet). Do not assign Haiku.
 
 ## Subagents vs Agent Teams
 
