@@ -27,6 +27,7 @@ Notes column says otherwise.
 | `PluginName.ini` / `BasePluginName.ini` in a plugin | `DefaultPluginName.ini` | Plugin config files |
 | `r.Water.SingleLayer.ForceVelocity` | `r.Water.SingleLayer.VelocityOutputPass` (or the project setting) | Rendering CVar |
 | `EWindowType::GameWindow` | `EWindowType::Normal` | Slate |
+| `QueueSubtitle` | `QueueSingleSubtitle`, or `QueueSubtitlesFromAsset` for every line in an asset | Audio Subtitles (Beta). The asset variant applies timing offsets automatically. Checked 2026-11-08 |
 
 ---
 

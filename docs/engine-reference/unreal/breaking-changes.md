@@ -32,6 +32,8 @@ the 5.8 engine source; the sources are listed at the end of this file.
 - **Audio voice limit**: `au.EnableRelativeRenderCostVoiceLimit` is on by default, so fewer sounds may play under the same voice count; revisit voice-count tuning.
 - **Enhanced Input fixes behind CVars**: held keys are ignored on flush (`EnhancedInput.IgnoreHeldKeysOnFlush`, default true) and touch bool action keys are corrected (`EnhancedInput.CorrectTouchBoolActionKeys`, default on). Both CVars "will be removed in a future release".
 - **Blueprint local variables**: a function local variable with the same name as a member variable can inherit the wrong default; rename such locals.
+- **Fast Geometry Streaming config**: `FastGeoStreaming.ini` is now `DefaultFastGeoStreaming.ini` (Experimental plugin; checked 2026-11-08).
+- **OpenXR stereo layers**: order now follows layer priority instead of a fixed order; existing projects keep working with no changes. To restore the pre-5.8 order, turn on `xr.OpenXRSortFaceLockedLayersAboveOtherLayers` (off by default; when on, face-locked layers always draw above everything else, regardless of priority) and set the projection layer priority lower than every stereo layer priority (checked 2026-11-08).
 
 ---
 

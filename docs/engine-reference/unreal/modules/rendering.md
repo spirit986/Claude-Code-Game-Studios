@@ -15,6 +15,9 @@
 > are Experimental. Sources: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8 ;
 > `Engine/Source/Runtime/Engine/Classes/Engine/RendererSettings.h` and
 > `Engine/Source/Runtime/RenderCore/Private/RenderUtils.cpp` (5.8.1 install).
+>
+> Lumen Lite uses Irradiance Fields with probe occlusion (5.8 release notes,
+> checked 2026-11-08).
 
 ---
 

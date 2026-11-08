@@ -12,6 +12,10 @@
 > Audio Subtitles is Beta; MetaSound Node Configuration and Templates are
 > Experimental. Custom MetaSound nodes: `FNodeClassMetadata::DefaultInterface`
 > now takes `FClassInterface`. Source: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
+>
+> Subtitles: `QueueSubtitle` is deprecated. Use `QueueSingleSubtitle`, or
+> `QueueSubtitlesFromAsset` to queue every line in an asset in one call with
+> timing offsets applied (5.8 release notes, checked 2026-11-08).
 
 ---
 

@@ -165,6 +165,15 @@ engine's word.
 
 ---
 
+### 🟡 Mutable
+- **Purpose:** Customizable characters and objects generated at runtime
+- **When to use:** Character creators, equipment visualization, NPC variety
+- **Status:** Production-ready in 5.8 per the release notes ("reaches production readiness"). Its `.uplugin` flag was not checked, so it is not in the status table above
+- **5.8 change:** Parallel updates and faster mesh and texture processing; dataless customizable objects evaluate parameters at runtime instead of compile time; a new skeletal mesh pin works at the whole-mesh level. `ComponentIndex` is deprecated in favour of `ComponentName` in `CustomizableSkeletalComponents`
+- **Official:** UE 5.8 release notes (checked 2026-11-08)
+
+---
+
 ## Experimental Plugins (Use with Caution)
 
 ### ⚠️ AI Assistant (UE 5.7+)
@@ -186,6 +195,28 @@ engine's word.
 - **Purpose:** Character and object movement framework with rollback and prediction
 - **Status:** Experimental (5.8 flag). 5.8 continues "the architectural work toward moving Mover out of Experimental status"
 - **5.8 change:** PhysicsMover / NetworkPhysicsLiaison code was removed from the Mover plugin; use `ChaosMover`
+
+---
+
+### ⚠️ Mesh Terrain (UE 5.8+)
+- **Purpose:** Mesh-based terrain for large worlds, using 3D modeling, layering, virtual textures, variable tessellation and Nanite; aims to remove the constraints of heightfield-only landscapes
+- **When to use:** Evaluate only
+- **Status:** Experimental
+- **Official:** UE 5.8 release notes (checked 2026-11-08)
+
+---
+
+### ⚠️ MetaHuman Crowd (UE 5.8+)
+- **Purpose:** Assembles optimized MetaHuman instances into crowds compatible with Mass, scaling from tens to thousands of characters; switches between full-detail actors and lighter instanced meshes by camera distance
+- **Status:** Experimental
+- **Official:** UE 5.8 release notes (checked 2026-11-08)
+
+---
+
+### ⚠️ Procedural Vegetation Editor (UE 5.8+)
+- **Purpose:** Creates and edits vegetation meshes in the editor, with Nanite foliage support, growth without imported recipes, foliage grafting and trimming
+- **Status:** Experimental
+- **Official:** UE 5.8 release notes (checked 2026-11-08)
 
 ---
 
@@ -251,6 +282,10 @@ For plugins NOT listed above, use the following approach when users ask:
 **I need vehicles** → **Chaos Vehicles**
 **I need water/oceans** → **Water Plugin**
 **I need VR/AR** → **OpenXR**
+**I need character customization** → **Mutable**
+**I need MetaHuman crowds** → **Mass Entity + MetaHuman Crowd (Experimental)**
+**I need terrain beyond heightfields** → **Mesh Terrain (Experimental, evaluate only)**
+**I need vegetation meshes made in the editor** → **Procedural Vegetation Editor (Experimental)**
 
 ---
 
