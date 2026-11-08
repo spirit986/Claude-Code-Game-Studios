@@ -17,11 +17,12 @@ every file write follows `.claude/docs/automation-modes.md`
 
 Resolved above — use as-is. No block → defaults in `.claude/docs/config-resolution.md`.
 
-> This skill declares tier-dependent behaviour ("audit only specs in the required
-> sections"), which is unreachable unless the tier is actually resolved — without
-> it the skill applies whatever tier it assumed. Resolve `modes.workflow` before
-> auditing, and
-> when a required input such as `design/gdd/systems-index.md` is absent, report
+# Content Audit
+
+> Resolve `modes.workflow` before auditing: this skill's tier-dependent behaviour
+> ("audit only specs in the required sections") follows the resolved tier, never
+> an assumed one. When a required input such as `design/gdd/systems-index.md` is
+> absent, report
 > **`NOT ASSESSED — NO DATA`** rather than computing a gap percentage (which
 > divides by zero when nothing is specified).
 
@@ -59,11 +60,10 @@ not a filled-in report.** Check first, and stop if the check fails.
 
 **A verdict of `NOT ASSESSED` is a success.** It is the correct, useful answer to
 "what does the data say?" when there is no data. The failure mode this prevents is
-specific and has been observed in practice: report templates whose verdict
-enum had no "could not run" state produced **false clean passes** — an asset audit
-returning COMPLIANT on a project with no assets and no standards, and a
-performance profile reporting ">99% headroom against a 16.67ms budget" with zero
-profiler data and no budget ever set.
+specific: a report whose verdict enum has no "could not run" state produces
+**false clean passes** — an asset audit returning COMPLIANT on a project with no
+assets and no standards, or a performance profile reporting ">99% headroom against
+a 16.67ms budget" with zero profiler data and no budget ever set.
 
 **Absence of evidence is never evidence of absence.** A scan that finds no
 matches because there are no files to scan has not verified anything. Say which of
@@ -74,7 +74,9 @@ the two happened — a reader cannot tell from a green result.
 ## Phase 1 — Context Gathering
 
 1. **Read `design/gdd/systems-index.md`** for the full list of systems, their
-   categories, and MVP/priority tier.
+   categories, and MVP/priority tier. Read it by section: find the headings you need
+   with the Grep tool (pattern `^#`, content mode) and Read those ranges with
+   offset and limit.
 
 2. **Registry-first count**: If `design/registry/entities.yaml` exists, read it
    first. Its `entities` and `items` sections are the cross-GDD named content
@@ -124,7 +126,9 @@ the two happened — a reader cannot tell from a green result.
    read.
 
 4. **Full-read in-scope GDD files** (or the single system GDD if a system
-   name was given).
+   name was given). This step needs the whole GDD: read it in ranges by its
+   headings (found with the Grep tool: pattern `^#`, content mode), since a
+   whole-file Read over 40 KB is refused.
 
 5. **For each GDD, extract explicit content counts or lists**, noting the `##` section each sits under — at `standard`, a count outside the required sections (`.claude/docs/workflow-modes.md`) goes on the "Not audited at this tier" list, never into the inventory. Look for patterns
    like:

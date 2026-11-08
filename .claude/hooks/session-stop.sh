@@ -11,16 +11,19 @@
 # project, not this one. Resolving to the script's own location first would
 # override them. So, in order:
 #   1. cwd holds project.yaml   -> cwd   (a project root)
-#   2. cwd holds .claude/       -> cwd   (a project root not yet configured)
-#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment)
+#   2. cwd holds .claude/       -> cwd   (a project root not yet configured),
+#      unless cwd is itself named .claude: a stray .claude/.claude/ would
+#      make .claude/ a root, and the hooks would write .claude/production/
+#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment),
+#      unless it names a .claude folder, for the same reason as rule 2
 #   4. this script's location   -> <root>/.claude/hooks/../.. by construction
 # Rule 4 always works and needs no environment at all; rules 1-2 stop it from
 # overriding a caller that legitimately means somewhere else.
 #
 # NOT an upward search: that resolves a nested project to its parent's config.
-if [ -f "project.yaml" ] || [ -d ".claude" ]; then
+if [ -f "project.yaml" ] || { [ -d ".claude" ] && [ "${PWD##*/}" != ".claude" ]; }; then
   CCGS_ROOT="$PWD"
-elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ]; then
+elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ] && case "${CLAUDE_PROJECT_DIR%/}" in */.claude|*\\.claude) false ;; *) true ;; esac; then
   CCGS_ROOT="$CLAUDE_PROJECT_DIR"
 else
   CCGS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)"
@@ -29,6 +32,12 @@ fi
 
 # Claude Code Stop hook: Log session summary when Claude finishes
 # Records what was worked on for audit trail and sprint tracking
+#
+# Registered with "async": true: it only writes files, so the turn does not
+# wait for it. Two consequences: Claude Code does not enforce its timeout, and
+# under `claude -p` it is cancelled if still running at teardown, so a headless
+# run's last archive can be cut short. Two firings can overlap; the hash guards
+# below then append a duplicate at worst, never lose an entry.
 
 # features.session_state: off => this hook is a no-op. Default `on`; see
 # session_state_enabled() in yaml-helper.sh.
@@ -51,16 +60,12 @@ MODIFIED_FILES=$(git diff --name-only 2>/dev/null)
 # It is only valid to delete active.md manually or when explicitly superseded.
 # APPEND ONLY WHEN THE CONTENT CHANGED.
 #
-# The Stop hook fires once per RESPONSE, not once per session. Both blocks below
-# appended unconditionally, so a long session wrote the whole of active.md on
-# every turn. Measured on this repository before this guard:
-#
-#   3,187 Stop firings, 665 archived copies, session-log.md at 17.5 MB
-#
-# and session-logs/ is gitignored, so nothing ever surfaced it. The growth
-# compounds: the larger active.md gets, the more each firing appends -- and
-# rotate-session-state.sh caps active.md precisely because it grows, while the
-# log accumulating full copies of it had no cap at all.
+# The Stop hook fires once per RESPONSE, not once per session. Appending
+# unconditionally in the two blocks below would write the whole of active.md on
+# every turn of a long session, and session-logs/ is gitignored, so nothing
+# would surface the growth. It compounds: the larger active.md gets, the more
+# each firing appends -- and rotate-session-state.sh caps active.md precisely
+# because it grows, so a log accumulating full copies of it needs a guard too.
 #
 # Content hash, not mtime: an editor that rewrites a file unchanged would
 # otherwise re-archive it. Same reasoning and same tool as review-receipts.sh --
@@ -113,9 +118,10 @@ fi
 # into a running count.
 #
 # Ordering matters: everything above runs BEFORE stdin is touched. Stop hooks
-# are piped JSON, but if stdin were ever absent the read would block until the
-# 10s timeout killed the hook -- and the state archive above must not be lost
-# to that. Read last, fail silent.
+# are piped JSON, but if stdin were ever absent the read would block -- and
+# Claude Code enforces no timeout on an async hook, so only `timeout 2` below
+# bounds it. The state archive above must not wait on that. Read last, fail
+# silent.
 AUDIT_LOG="$SESSION_LOG_DIR/agent-audit.log"
 
 if [ ! -t 0 ] && [ -f "$AUDIT_LOG" ]; then
@@ -162,8 +168,8 @@ if [ ! -t 0 ] && [ -f "$AUDIT_LOG" ]; then
                 echo "To reduce this: lower \`modes.review_mode\` (\`/settings modes.review_mode=solo\`)"
                 echo "or \`modes.rigor\` (\`/settings modes.rigor=minimal\`)."
             } > "$SESSION_LOG_DIR/session-cost.md" 2>/dev/null
-
-            echo "Subagent spawns this session: $SPAWN_COUNT (see production/session-logs/session-cost.md)"
+            # No echo: a Stop hook's stdout reaches only the debug log, and
+            # this hook runs async, so nothing would ever read it.
         fi
     fi
 fi

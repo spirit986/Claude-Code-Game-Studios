@@ -10,16 +10,19 @@
 # project, not this one. Resolving to the script's own location first would
 # override them. So, in order:
 #   1. cwd holds project.yaml   -> cwd   (a project root)
-#   2. cwd holds .claude/       -> cwd   (a project root not yet configured)
-#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment)
+#   2. cwd holds .claude/       -> cwd   (a project root not yet configured),
+#      unless cwd is itself named .claude: a stray .claude/.claude/ would
+#      make .claude/ a root, and the hooks would write .claude/production/
+#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment),
+#      unless it names a .claude folder, for the same reason as rule 2
 #   4. this script's location   -> <root>/.claude/hooks/../.. by construction
 # Rule 4 always works and needs no environment at all; rules 1-2 stop it from
 # overriding a caller that legitimately means somewhere else.
 #
 # NOT an upward search: that resolves a nested project to its parent's config.
-if [ -f "project.yaml" ] || [ -d ".claude" ]; then
+if [ -f "project.yaml" ] || { [ -d ".claude" ] && [ "${PWD##*/}" != ".claude" ]; }; then
   CCGS_ROOT="$PWD"
-elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ]; then
+elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ] && case "${CLAUDE_PROJECT_DIR%/}" in */.claude|*\\.claude) false ;; *) true ;; esac; then
   CCGS_ROOT="$CLAUDE_PROJECT_DIR"
 else
   CCGS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)"
@@ -36,28 +39,25 @@ fi
 # files: a new GDD, a new source file, a new test. So "does the gameplay-code
 # rule ever actually reach the model?" has a real answer, and before
 # this hook the only way to get it was to infer it from behaviour afterwards.
+# An inferred answer goes wrong silently: a rule can specify one convention
+# while agents follow another, and nothing surfaces the disagreement. A log of
+# the load events replaces the inference with a record.
 #
-# That inference was made once here, expensively: a data-file rule specified one
-# key casing, agents wrote the other, and nothing surfaced the disagreement.
-# Measurement replaces the inference.
-#
-# MEASURED, same repo, one session:
+# WHAT IT RECORDS
 #   session_start     CLAUDE.md
-#   include           its four @-imports, each carrying parent_file_path
-#   path_glob_match   .claude/rules/skill-authoring.md, after READING a file
-#                     under .claude/agents/** -- one of its declared paths
-#   (nothing)         after CREATING a file under prototypes/** -- a declared
-#                     path of .claude/rules/prototype-code.md
+#   include           its @-imports, each carrying parent_file_path
+#   path_glob_match   a path-scoped rule, after READING a file that matches one
+#                     of its declared paths
+#   (nothing)         after CREATING a file that matches a declared path
 # Read fires, create does not. Keep this hook wired: the behaviour is upstream
 # and can change in either direction, and this is the only thing here that would
 # notice.
 #
 # SCHEMA CONFIRMED, NOT ASSUMED
 # The common fields are documented; the event-specific ones are not. `pick()`
-# tries the confirmed name first and keeps alternates behind it, so a schema
-# change degrades to a fallback rather than to a blank column -- and the RAW
-# line carries the answer regardless. That is how `load_reason` was found: the
-# first guess (`reason`) missed, and the raw payload named the real field.
+# tries the confirmed name first (`load_reason` for the reason) and keeps
+# alternates behind it, so a schema change degrades to a fallback rather than
+# to a blank column -- and the RAW line carries the answer regardless.
 #
 # NOT GATED ON features.session_state, deliberately. This is a diagnostic wired
 # up on purpose; silencing it from an unrelated flag would make it do nothing

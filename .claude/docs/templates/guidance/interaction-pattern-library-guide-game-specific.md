@@ -58,7 +58,7 @@ any context where an ability must show availability state.
 `Control` nodes for cooldown radial and charge pips. The cooldown radial uses a
 custom shader on a `ColorRect` rotating a mask — or implement with a
 `ProgressBar` styled as circular if engine supports it. Verify against
-engine-reference/godot/ for Godot 4.6 shader support for this pattern.]
+engine-reference/godot/ for Godot 4.7 shader support for this pattern.]
 
 ---
 

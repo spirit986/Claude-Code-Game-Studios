@@ -4,19 +4,15 @@
     "type": "command",
     "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/statusline.sh\""
   },
+  "worktree": {
+    "baseRef": "head"
+  },
   "permissions": {
     "defaultMode": "default",
     "allow": [
-      "Bash(git status*)",
-      "Bash(git diff*)",
-      "Bash(git log*)",
-      "Bash(git branch*)",
-      "Bash(git rev-parse*)",
-      "Bash(ls *)",
       "Bash(dir *)",
-      "Bash(python -m json.tool*)",
-      "Bash(python -m pytest*)",
-      "Bash(py -m pytest*)"
+      "Bash(python -m pytest *)",
+      "Bash(py -m pytest *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -91,10 +87,10 @@
       "Bash(git *clean* -Xqdf*)",
       "Bash(sudo *)",
       "Bash(chmod 777*)",
-      "Bash(*>.env*)",
-      "Bash(cat *.env*)",
-      "Bash(type *.env*)",
       "Read(**/.env*)",
+      "Edit(**/.env*)",
+      "Edit(**/*.uasset)",
+      "Edit(**/*.umap)",
       "PowerShell(Remove-Item *-Recurse*)",
       "PowerShell(Remove-Item * -r*)",
       "PowerShell(Remove-Item -r*)",
@@ -184,6 +180,31 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-registry.sh\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-write.sh\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-read.sh\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -205,7 +226,7 @@
     ],
     "Notification": [
       {
-        "matcher": "",
+        "matcher": "permission_prompt|idle_prompt",
         "hooks": [
           {
             "type": "command",
@@ -227,18 +248,6 @@
         ]
       }
     ],
-    "PostCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-compact.sh\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
@@ -246,7 +255,8 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-stop.sh\"",
-            "timeout": 10
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -271,6 +281,11 @@
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-agent-stop.sh\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-agent-artifact.sh\"",
+            "timeout": 10
           }
         ]
       }

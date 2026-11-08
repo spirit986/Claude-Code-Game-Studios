@@ -18,10 +18,10 @@
 # desktop-focused"). Prose is in place and does not hold on its own. What was
 # missing was a step that reads back what was written.
 #
-# F1's root cause was subtler and is fixed elsewhere: `/setup-engine` is told to
-# write an `Installed at pin time` row into VERSION.md, and no VERSION.md had
-# such a row. There was no slot, so the step vanished leaving no trace. The row
-# now ships in all three reference files, and check 1 below reads it.
+# A subtler cause is handled elsewhere: `/setup-engine` writes an `Installed at
+# pin time` row into VERSION.md, and a VERSION.md with no such row leaves that
+# step no slot, so it vanishes without a trace. The row ships in all three
+# reference files, and check 1 below reads it.
 #
 # OBSERVATIONS, NEVER VERDICTS
 #
@@ -33,7 +33,10 @@
 set -u
 export LC_ALL=C
 
-ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -f "$CLAUDE_PROJECT_DIR/project.yaml" ]; then
+  ROOT="$CLAUDE_PROJECT_DIR"
+fi
 cd "$ROOT" || exit 0
 
 DIFFERS=0
@@ -134,10 +137,16 @@ case "$ENGINE_LC" in
     # and smoke-check use. commands.* now carries the full editor path once
     # /setup-engine has run, so a bare `command -v godot` alone reported "no
     # Godot binary found on PATH" even on a correctly configured project.
+    # commands.test's program counts only when its file name says godot: a
+    # wrapper such as `bash run-tests.sh` is not the editor, and probing it
+    # compared bash's version with engine.version.
+    godot_named() {
+      case "$(printf '%s' "${1##*/}" | tr 'A-Z' 'a-z')" in *godot*) printf '%s' "$1" ;; esac
+    }
     GEXE=""
     for GCAND in \
-      "$(yaml_block_value commands test | grep -oE '"[^"]*"' | head -1 | tr -d '"')" \
-      "$(yaml_block_value commands test | awk '{print $1}')" \
+      "$(godot_named "$(yaml_block_value commands test | grep -oE '"[^"]*"' | head -1 | tr -d '"')")" \
+      "$(godot_named "$(yaml_block_value commands test | awk '{print $1}')")" \
       "$(yaml_block_value engine path)" \
       "godot"; do
       [ -n "$GCAND" ] || continue
@@ -163,7 +172,45 @@ case "$ENGINE_LC" in
     fi
     [ -n "$UEXE" ] && [ -x "$UEXE" ] && PROBE="$("$UEXE" -version 2>/dev/null | head -1)"
     ;;
-  unreal)  command -v UnrealEditor-Cmd >/dev/null 2>&1 && PROBE="$(UnrealEditor-Cmd -version 2>/dev/null | head -1)" ;;
+  unreal)
+    # Never start the editor to learn its version: UnrealEditor-Cmd has no
+    # -version flag (UE 5.8), so it opened the editor and ran until killed, and
+    # /smoke-check's step 0 waited for ever. Read the engine's own
+    # Engine/Build/Build.version instead, under the first engine root found:
+    # engine.path (/setup-engine writes the UE root there), the editor path in
+    # commands.test, the launcher folder for the .uproject's EngineAssociation,
+    # then UnrealEditor-Cmd on PATH. A candidate that is not itself a root is
+    # cut back to the folder above its last /Engine. A source build's
+    # EngineAssociation is a GUID with no folder to derive, so it adds nothing.
+    UASSOC="$(sed -n 's/.*"EngineAssociation"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' ./*.uproject 2>/dev/null | head -1)"
+    ULAUNCH=""
+    if [ -n "$UASSOC" ]; then
+      case "$(uname -s)" in
+        Darwin) ULAUNCH="/Users/Shared/Epic Games/UE_$UASSOC" ;;
+        Linux)  ;;
+        *)      ULAUNCH="C:/Program Files/Epic Games/UE_$UASSOC" ;;
+      esac
+    fi
+    UROOT=""
+    for UCAND in \
+      "$(yaml_block_value engine path)" \
+      "$(yaml_block_value commands test | grep -oE '"[^"]*UnrealEditor[^"]*"' | head -1 | tr -d '"')" \
+      "$ULAUNCH" \
+      "$(command -v UnrealEditor-Cmd 2>/dev/null)"; do
+      [ -n "$UCAND" ] || continue
+      UCAND="$(printf '%s' "$UCAND" | tr '\\' '/')"
+      for UTRY in "$UCAND" "$(printf '%s' "$UCAND" | sed -E 's#^(.*)/Engine(/.*)?$#\1#')"; do
+        if [ -f "$UTRY/Engine/Build/Build.version" ]; then UROOT="$UTRY"; break 2; fi
+      done
+    done
+    if [ -n "$UROOT" ]; then
+      UBV="$(tr -d '\r\n' < "$UROOT/Engine/Build/Build.version")"
+      UMAJ="$(printf '%s' "$UBV" | grep -oE '"MajorVersion"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')"
+      UMIN="$(printf '%s' "$UBV" | grep -oE '"MinorVersion"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')"
+      UPAT="$(printf '%s' "$UBV" | grep -oE '"PatchVersion"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+$')"
+      [ -n "$UMAJ" ] && [ -n "$UMIN" ] && PROBE="$UMAJ.$UMIN${UPAT:+.$UPAT} (Engine/Build/Build.version)"
+    fi
+    ;;
 esac
 
 if [ -z "$PROBE" ]; then
@@ -171,6 +218,8 @@ if [ -z "$PROBE" ]; then
     skipped "declared version vs installed binary — no Unity editor at the path in commands.test or in the Hub folder for engine.version. A probe that could not run has not established absence."
   elif [ "$ENGINE_LC" = "godot" ]; then
     skipped "declared version vs installed binary — no Godot executable found (commands.test, engine.path, PATH). A probe that could not run has not established absence."
+  elif [ "$ENGINE_LC" = "unreal" ]; then
+    skipped "declared version vs installed engine — no readable Engine/Build/Build.version under engine.path, the editor in commands.test, the launcher folder for the .uproject's EngineAssociation, or UnrealEditor-Cmd on PATH. A probe that could not run has not established absence."
   else
     skipped "declared version vs installed binary — no $ENGINE binary found on PATH. A probe that could not run has not established absence."
   fi

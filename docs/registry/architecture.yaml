@@ -8,7 +8,8 @@
 #   - Register a stance when it constrains how OTHER systems must be built.
 #     An internal implementation detail that affects only one ADR does not need
 #     to be registered.
-#   - Never delete entries — set status: superseded_by: ADR-NNNN instead.
+#   - Never delete entries — set status: "superseded_by: ADR-NNNN" instead,
+#     quoted: unquoted, the second colon makes the file invalid YAML.
 #   - When a stance changes: update the entry, set revised: to today's date,
 #     add a comment with the old value, and run /architecture-review to check
 #     what ADRs are now invalidated.
@@ -27,7 +28,16 @@
 #   All signal contracts:   Grep pattern="pattern: signal"
 #   Budget for combat:      Grep pattern="system: combat"
 #   All forbidden patterns: Grep pattern="^  - pattern:" (forbidden_patterns section)
-#   Superseded entries:     Grep pattern="status: superseded"
+#   Superseded entries:     Grep pattern="superseded_by: ADR-"
+#
+# LAYOUT: the one shape .claude/scripts/registry.sh reads. Each section is a
+#   key at column 0 holding a block list, or [] while it is empty. Each entry
+#   starts with its section's name key ("- state:", "- contract:", "- system:"
+#   or "- target_fps:" for the frame budget, "- purpose:", "- pattern:"), the
+#   dash at column 2 (or 0, the same for every entry of a section); its fields
+#   sit two columns past the dash. Quote a value that holds ": ", such as
+#   "superseded_by: ADR-NNNN". A line in any other shape is reported as
+#   unsupported layout, with its number.
 
 version: 1
 last_updated: ""
@@ -49,7 +59,7 @@ state_ownership: []
 #
 # state_ownership:
 #   - state: player_health
-#     status: active           # active | superseded_by: ADR-NNNN
+#     status: active           # active | "superseded_by: ADR-NNNN"
 #     owner_system: health-system
 #     adr: docs/architecture/adr-0001-health-system.md
 #     interface: "HealthComponent.current_health (read-only float, range 0–max_health)"

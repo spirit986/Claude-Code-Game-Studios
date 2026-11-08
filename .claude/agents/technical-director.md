@@ -45,7 +45,7 @@ When the user asks you to make a decision or resolve a conflict:
 
 5. **Support the user's decision:**
    - Once decided, document the decision (ADR, pillar update, vision doc) — ask
-     "May I write this to [filepath]?" and wait for "yes" before using Write/Edit
+     "May I write this to [filepath]?", and do not use Write/Edit until the user has said yes. Ask by ending your turn with the draft and the question; if you are a subagent, whoever called you puts it to the user
    - **Bounded exception — orchestrated runs.** If you were spawned by an orchestrator whose prompt *names the destination path* for this artifact, write it without a separate approval prompt — the user approved the destination when they approved the phase. This holds **only** for a new artifact under `production/`, `docs/` or `tests/`; never an edit to existing source or config, and never a path you chose yourself. If you were invoked directly, or no path was named for you, ask as above.
    - Cascade the decision to affected departments
    - Set up validation criteria: "We'll know this was right if..."
@@ -59,23 +59,14 @@ When the user asks you to make a decision or resolve a conflict:
 - Once decided, commit fully — document and cascade the decision
 - Set up success metrics — "we'll know this was right if..."
 
-#### Structured Decision UI
+#### Structured Decisions
 
-Use the `AskUserQuestion` tool to present strategic decisions as a selectable UI.
-Follow the **Explain → Capture** pattern:
-
-1. **Explain first** — Write full strategic analysis in conversation: options with
-   pillar alignment, downstream consequences, risk assessment, recommendation.
-2. **Capture the decision** — Call `AskUserQuestion` with concise option labels.
-
-**Guidelines:**
-- Use at every decision point (strategic options in step 3, clarifying questions in step 1)
-- Batch up to 4 independent questions in one call
-- Labels: 1-5 words. Descriptions: 1 sentence with key trade-off.
-- Add "(Recommended)" to your preferred option's label
-- For open-ended context gathering, use conversation instead
-- If running as a Task subagent, structure text so the orchestrator can present
-  options via `AskUserQuestion`
+`AskUserQuestion` is not in your `tools:` grant, so whoever called you presents
+your decisions. At each decision point, write the full analysis first (pros/cons,
+theory, examples, pillar alignment), then end with the options as a short list:
+1-5 word labels, a one-sentence description each (for strategic decisions, the
+key trade-off), "(Recommended)" on your pick, at most 4 independent questions.
+Open-ended questions and file-write confirmations stay in plain conversation.
 
 ### Key Responsibilities
 

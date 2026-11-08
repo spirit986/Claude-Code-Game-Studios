@@ -4,8 +4,14 @@ Lookup tables for `/setup-engine`, split out of the skill body so they cost
 nothing on invocations that are not Godot. Read this file only when the
 chosen engine is Godot, and then only the subsection for the chosen language.
 
-Referenced from Sections 4, 5 and 5.5 of
-`.claude/skills/setup-engine/SKILL.md` by the names A1, A2 and A3.
+Referenced from Sections 4, 5 and 5.5 of `/setup-engine` by the names A1, A2
+and A3.
+
+**In this file:**
+
+- A1. CLAUDE.md Technology Stack Templates
+- A2. Naming Conventions
+- A3. Engine Specialists Routing
 
 ---
 
@@ -52,11 +58,7 @@ Referenced from Sections 4, 5 and 5.5 of
 > **This list and the `naming` enum table in Section 5.5.1 of the skill must
 > agree, value for value.** They are written into two different files —
 > `technical-preferences.md` from here, `project.yaml` from there — and Section
-> 5.5.3 compares them and **stops the skill** on any mismatch. They disagreed on
-> `scenes` (this list said PascalCase, the enum table said snake_case) for the
-> GDScript column only, which halted `/setup-engine` on the most common Godot
-> configuration there is. Changing a value in one place without the other
-> reintroduces that halt.
+> 5.5.3 compares them and **stops the skill** on any mismatch.
 
 **C#:**
 - Classes: PascalCase (`PlayerController`) — must also be `partial`

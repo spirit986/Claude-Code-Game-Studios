@@ -27,7 +27,9 @@ Locate the baseline scope document for the given argument:
 - **Milestone** → read `production/milestones/[name].md`
 
 If the document is not found, report the missing file and stop. Do not proceed without
-a baseline to compare against.
+a baseline to compare against. Read a GDD by section: find the headings you need with
+the Grep tool (pattern `^#`, content mode) and Read those ranges with offset and
+limit.
 
 ---
 
@@ -102,8 +104,8 @@ Assign a canonical verdict based on net scope change:
 | Net Change | Verdict | Meaning |
 |-----------|---------|---------|
 | ≤10% | **PASS** | On Track — within acceptable variance |
-| 10–25% | **CONCERNS** | Minor Creep — manageable with targeted cuts |
-| 25–50% | **FAIL** | Significant Creep — must cut or formally extend timeline |
+| >10–25% | **CONCERNS** | Minor Creep — manageable with targeted cuts |
+| >25–50% | **FAIL** | Significant Creep — must cut or formally extend timeline |
 | >50% | **FAIL** | Out of Control — stop, re-plan, escalate to producer |
 
 **Before applying that table, check that the percentage means something.** Emit
@@ -144,8 +146,8 @@ After presenting the report, offer concrete follow-up:
   the baseline document, or point the skill at where the work actually lives).
   Do not offer a re-run against the same inputs — it will produce the same
   non-answer.
-- **CONCERNS** → offer to identify the 2–3 additions with best cut ratio. Reference `/sprint-plan update` to formally re-scope.
-- **FAIL** → recommend escalating to producer. Reference `/sprint-plan update` for re-planning or `/estimate` to re-baseline timeline.
+- **CONCERNS** → offer to identify the 2–3 additions with best cut ratio. Reference `/sprint-plan update` to formally re-scope (if the project has no sprint plan, as on the default minimal workflow, re-scope by editing the brief's build order).
+- **FAIL** → recommend escalating to producer. Reference `/sprint-plan update` for re-planning (if the project has no sprint plan, as on the default minimal workflow, edit the brief's build order) or `/estimate` to re-baseline timeline.
 
 End every verdict except NOT ASSESSED with:
 > "Run `/scope-check [name]` again after cuts are made to verify the verdict improves."

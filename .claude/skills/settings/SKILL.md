@@ -3,7 +3,7 @@ name: settings
 description: "View or change project config — effective merged values, or set locally in project.local.yaml."
 argument-hint: "[key | key=value | --local key=value]"
 user-invocable: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Write, Edit, AskUserQuestion, Bash(bash "*/.claude/skills/settings/../../hooks/yaml-helper.sh" resolve_setting *), Bash(bash "*/.claude/skills/settings/../../hooks/yaml-helper.sh" get_yaml_key *), Bash(bash "*/.claude/skills/settings/../../hooks/yaml-helper.sh" validate_yaml_enum *), Bash(bash "*/.claude/skills/settings/../../hooks/yaml-helper.sh" validate_enum_value *), Bash(bash "*/.claude/skills/settings/../../hooks/yaml-helper.sh" is_locally_overridable *), Bash(bash .claude/scripts/config-set.sh *), Bash(grep -B14 '^> ### RESERVED' .claude/docs/effects-map.md), Bash(grep -E '^## ')
 model: sonnet
 ---
 
@@ -46,18 +46,28 @@ Anything else that doesn't match the four forms above → Phase 6 (usage).
 
 ## Phase 1: Load Helper
 
-All four subcommands need `yaml-helper.sh`. Source it once via Bash:
+All four subcommands need `yaml-helper.sh`. Run each helper call as its own
+plain command:
 
 ```bash
-source "${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/yaml-helper.sh"
+bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" <helper call>
 ```
+
+`<helper call>` is the function each phase below names, for example
+`resolve_setting modes.review_mode` or `validate_yaml_enum project.yaml`. The
+helper moves to the project root itself, so those `project.yaml` and
+`project.local.yaml` arguments resolve when the session was started in a
+subfolder, and it keeps the function's exit status. `is_locally_overridable`
+also prints its `0` or `1`. Run the call exactly as shown: do not `source` the
+file, wrap it in `cd ... &&` or append `; echo $?`. This skill pre-approves the
+plain form only, and a compound command asks the user every time.
 
 If `.claude/hooks/yaml-helper.sh` is missing, this is not a CCGS project.
 Report the error and exit.
 
 ## Phase 1b: Reserved-setting detection
 
-Some settings are fully documented, enum-validated and settable, and **no skill
+Some settings are fully documented and settable, and **no skill
 or hook reads them** — setting one changes nothing. **This skill must say so.**
 Returning an ordinary success lets a user reasonably believe the behaviour the
 setting describes is now enforced — an accessibility tier being the case that
@@ -156,7 +166,7 @@ legitimate; storing it *silently* is the defect.
    print this line with the legend below the block:
 
    ```
-   reserved = stored and validated, but nothing reads it. Setting it changes
+   reserved = stored, but nothing reads it. Setting it changes
    no behaviour today.
    ```
 
@@ -185,7 +195,7 @@ Schema validation: ok
 Effective config:
 
 framework:
-  version: 1.1.2            (project.yaml, locked)
+  version: 1.2.0            (project.yaml, locked)
 
 modes:
   review_mode: lean         (project.yaml)
@@ -202,7 +212,7 @@ qa:
 
 engine:
   name: Godot               (project.yaml, locked)
-  version: 4.6              (project.yaml, locked)
+  version: 4.7              (project.yaml, locked)
 
 testing:
   strict:
@@ -241,8 +251,8 @@ Schema validation: ERRORS
 **If `<key>` is in `RESERVED_SET`, print this BEFORE the value block** — above,
 not below. A caveat under a value reads as a footnote on a working setting:
 
-> **`<key>` is RESERVED — nothing reads it.** The value below is stored and
-> validated; it changes no behaviour today.
+> **`<key>` is RESERVED — nothing reads it.** The value below is stored; it
+> changes no behaviour today.
 
 Let `<key>` be the argument. Perform four reads:
 
@@ -301,6 +311,16 @@ When the effective value is empty (key not set anywhere), print just:
    (`Invalid value '<value>' for '<key>'. Allowed: ...`) and the skill
    exits without writing. If it returns 0, the value is either valid
    or the key has no enum constraint — proceed.
+
+1b. **Known-key check**: run, from the project root as in Phase 1,
+   `bash .claude/scripts/config-set.sh <key> <value> --dry-run` and read its
+   `known` row. If it says `yes`, proceed. If it says `no`, nothing in CCGS reads
+   that key, so writing it changes nothing; it is most often a typo. Do not
+   write yet: say so, and ask via `AskUserQuestion` with the options
+   `Use <nearest> instead` (only when the row ends `nearest: <key>`),
+   `Write <key> anyway`, `Cancel`. Continue only on an explicit choice; with
+   `Use <nearest> instead`, start this phase again with that key. A skipped or
+   empty answer cancels.
 
 2. **Reserved warning**: if `<key>` is in `RESERVED_SET` (Phase 1b), print
    BEFORE the approval prompt:
@@ -382,6 +402,10 @@ When the effective value is empty (key not set anywhere), print just:
 2. **Schema validation**: call `validate_enum_value <key> <value>`. If
    it returns 1, show the stderr message verbatim and exit without
    writing.
+
+2a. **Known-key check**: as in Phase 4 step 1b, with `--local` before
+   `<key>`: if the `known` row says `no`, ask before writing, offering the `nearest:` key
+   when the row names one.
 
 2b. **Reserved warning**: if `<key>` is in `RESERVED_SET` (Phase 1b), print
    BEFORE the approval prompt:

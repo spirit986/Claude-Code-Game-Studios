@@ -9,6 +9,8 @@ model: sonnet
 
 !`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation`
 
+# Balance Check
+
 
 
 Every `AskUserQuestion` call follows `.claude/docs/automation-modes.md`
@@ -33,11 +35,10 @@ not a filled-in report.** Check first, and stop if the check fails.
 
 **A verdict of `NOT ASSESSED` is a success.** It is the correct, useful answer to
 "what does the data say?" when there is no data. The failure mode this prevents is
-specific and has been observed in practice: report templates whose verdict
-enum had no "could not run" state produced **false clean passes** — an asset audit
-returning COMPLIANT on a project with no assets and no standards, and a
-performance profile reporting ">99% headroom against a 16.67ms budget" with zero
-profiler data and no budget ever set.
+specific: a report whose verdict enum has no "could not run" state produces
+**false clean passes** — an asset audit returning COMPLIANT on a project with no
+assets and no standards, or a performance profile reporting ">99% headroom against
+a 16.67ms budget" with zero profiler data and no budget ever set.
 
 **Absence of evidence is never evidence of absence.** A scan that finds no
 matches because there are no files to scan has not verified anything. Say which of
@@ -83,7 +84,9 @@ populates it), skip this and use the GDD alone.
 
 Then read the GDD for the system from `design/gdd/` to understand intended design
 targets, tuning knobs, and expected value ranges — for anything the registry did
-not already supply. This is the baseline for "correct" behaviour.
+not already supply. This is the baseline for "correct" behaviour. Read it by section:
+find the headings you need with the Grep tool (pattern `^#`, content mode) and
+Read those ranges with offset and limit.
 
 If the data files are FOUND but neither source gives targets for this domain,
 the sections that judge against targets (Outliers Detected, and Progression
@@ -184,6 +187,11 @@ After presenting the report, use `AskUserQuestion`:
   - `[A] Fix highest-priority issue now — walk me through it`
   - `[B] Save report to design/balance/balance-check-[system]-[date].md`
   - `[C] Stop here — I'll review the findings manually`
+
+**Run as a subagent?** `game-designer` preloads this skill, and a subagent has
+no `AskUserQuestion`. End your reply with the question and these three options
+as a short list, and stop: whoever called you asks the user and passes the
+answer back.
 
 If [A]:
 - Ask which issue to address first (refer to the Recommendations table by priority row)

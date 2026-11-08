@@ -508,7 +508,7 @@ which is high friction.
 but always include a visible `Label` node as the field's accessible name. Bind
 `text_changed` signal for real-time validation. Bind `text_submitted` for form
 submission on Enter. On console, `LineEdit.call("_popup_keyboard")` or use the OS
-virtual keyboard API — verify against engine-reference/godot/ for Godot 4.6
+virtual keyboard API — verify against engine-reference/godot/ for Godot 4.7
 console keyboard API specifics.]
 
 ---

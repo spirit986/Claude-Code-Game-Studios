@@ -1,12 +1,12 @@
-# HUD Design: [Game Name]
+# HUD Design
 
 > Authoring guidance: .claude/docs/templates/guidance/hud-design-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Draft | In Review | Approved | Implemented
-> **Author**: [Name or agent — e.g., ux-designer]
-> **Last Updated**: [Date]
+> **Status**: [In Design | In Review | Approved | Implemented]
+> **Author**: [user + ux-designer]
+> **Last Updated**: [today's date]
 > **Game**: [Game name — this is a single document per game, not per element]
-> **Platform Targets**: [All platforms this HUD must work on — e.g., PC, PS5, Xbox Series X, Steam Deck]
+> **Platform Targets**: [target platforms and input methods from 2h]
 > **Related GDDs**: [Every system that exposes information through the HUD — e.g., `design/gdd/combat.md`, `design/gdd/progression.md`, `design/gdd/quests.md`]
 > **Accessibility Tier**: Basic | Standard | Comprehensive | Exemplary
 > **Style Reference**: [Link to art bible HUD section if it exists — e.g., `design/art/art-bible.md § 7. UI/HUD Visual Direction`]
@@ -22,6 +22,8 @@
 ---
 
 ## 1. HUD Philosophy
+
+[To be designed]
 
 **What is this game's relationship with on-screen information?**
 
@@ -43,6 +45,16 @@
 > inventory of game information, not just HUD information. See guide Section 2
 > for a worked example covering typical information types.
 
+### 2.1 Full Information Inventory
+
+[To be designed]
+
+[Every piece of information the game generates, one line each — health, resources, objectives, timers, status effects, subtitles and the rest — whether or not the HUD shows it.]
+
+### 2.2 Categorization
+
+[To be designed]
+
 | Information Type | Always Show | Contextual (show when relevant) | On Demand (menu/button) | Hidden (environmental / diegetic) | Reasoning |
 |-----------------|-------------|--------------------------------|------------------------|----------------------------------|-----------|
 | [Information type — e.g., Health, resource, minimap, quest objective, subtitles, status effects, timer, XP] | [ ] | [ ] | [ ] | [ ] | [Why this presentation category] |
@@ -50,6 +62,8 @@
 ---
 
 ## 3. Layout Zones
+
+[To be designed]
 
 ### 3.1 Zone Diagram
 
@@ -99,6 +113,8 @@
 
 ## 4. HUD Element Specifications
 
+[To be designed]
+
 ### 4.1 Element Overview Table
 
 > One row per HUD element. This is the master inventory for implementation planning.
@@ -132,6 +148,8 @@
 
 ## 5. HUD States by Gameplay Context
 
+[To be designed]
+
 > Define the HUD transformation for every gameplay context — at minimum:
 > exploration, combat, dialogue/cutscene, and paused/menu. See guide Section 5
 > for a worked example covering nine contexts.
@@ -144,6 +162,8 @@
 
 ## 6. Information Hierarchy
 
+[To be designed]
+
 > Assign every element a priority tier (MUST KEEP / SHOULD KEEP / CAN HIDE /
 > ALWAYS HIDE) with reasoning. See guide Section 6 for a worked example.
 
@@ -154,6 +174,8 @@
 ---
 
 ## 7. Visual Budget
+
+[To be designed]
 
 > These numbers are hard limits, not guidelines. Every element addition that
 > would breach a limit requires explicit approval and must displace or reduce an
@@ -173,6 +195,8 @@
 
 ## 8. Feedback & Notification Systems
 
+[To be designed]
+
 > One row per notification type. Every notification must have queue/priority
 > behavior defined. See guide Section 8 for a worked example table and queue rules.
 
@@ -188,6 +212,8 @@
 ---
 
 ## 9. Platform Adaptation
+
+[To be designed]
 
 > Every target platform requires explicit layout testing before certification.
 > See guide Section 9 for a worked example.
@@ -206,6 +232,8 @@ Repositioning saves to player profile, not to a single slot. Applies across play
 ---
 
 ## 10. Accessibility
+
+[To be designed]
 
 > HUD-specific requirements only — refer to the project's
 > `design/accessibility-requirements.md` for the full project standard.
@@ -267,6 +295,8 @@ The following player-adjustable settings must be available from the Accessibilit
 
 ## 11. Tuning Knobs
 
+[To be designed]
+
 > Document all tunable parameters before implementation so the programmer knows
 > which values to externalize. See guide Section 11 for a worked example.
 
@@ -277,6 +307,8 @@ The following player-adjustable settings must be available from the Accessibilit
 ---
 
 ## 12. Acceptance Criteria
+
+[To be designed]
 
 > These criteria are the certification checklist for the HUD. Every item must
 > pass before the HUD can be marked Approved. QA must be able to verify each
@@ -321,6 +353,8 @@ The following player-adjustable settings must be available from the Accessibilit
 ---
 
 ## 13. Open Questions
+
+[To be designed]
 
 > Track unresolved design questions here. All questions must be resolved before
 > the HUD design document can be marked Approved. See guide Section 13 for

@@ -11,8 +11,8 @@ and `/story-readiness` + `/dev-story`.
 | File | Required Fields / Sections | Read-Only? |
 |------|---------------------------|-----------|
 | `production/epics/[epic-slug]/EPIC.md` | `Layer:`, `GDD:` path, `Architecture Module:`, `## Governing ADRs` table, `## GDD Requirements` table with TR-IDs | Yes |
-| `design/gdd/[filename].md` | All 8 required sections, especially `## Acceptance Criteria`, `## Formulas`, `## Edge Cases` | Yes |
-| `docs/architecture/adr-NNNN-[slug].md` (all governing ADRs) | `Status:`, `Decision`, `Implementation Guidelines`, `Engine Compatibility`, `Engine Notes` | Yes |
+| `design/gdd/[filename].md` | The sections required at the system's tier (all 8 at `full`; the 5 required + conditional Formulas at `standard`), especially `## Acceptance Criteria`, `## Formulas`, `## Edge Cases` | Yes |
+| `docs/architecture/adr-NNNN-[slug].md` (all governing ADRs) | `## Status`, `## Summary`, `## Decision` (incl. `### Implementation Guidelines`), `## Engine Compatibility`, `## Last Verified` / `## Date`, the `**Depends On**` row (read through `adr-status.sh`) | Yes |
 | `docs/architecture/control-manifest.md` | Layer rules (required patterns, forbidden patterns, guardrails), `Manifest Version:` date in header | Yes |
 | `docs/architecture/tr-registry.yaml` | All TR-IDs for the epic's system, with stable `id` values | Yes |
 
@@ -22,8 +22,8 @@ and `/story-readiness` + `/dev-story`.
 > exists there, never rewriting it), needs no `/create-epics`
 > run, and reads no GDD, ADR, control manifest or TR registry. Each story traces to
 > `Brief MVP feature N` instead of a TR-ID, and its ADR lines read
-> `N/A (minimal — no ADRs)` (SKILL.md, the `minimal` branch of Step 2 and the
-> `minimal` field mapping in Step 6).
+> `N/A (minimal — no ADRs)` (SKILL.md, the `minimal` branch of Phase 2 and the
+> `minimal` field mapping in Phase 7).
 
 ### Preconditions
 - `/create-epics` has been run and the target `EPIC.md` has `Status: Ready`
@@ -36,23 +36,24 @@ and `/story-readiness` + `/dev-story`.
 ### Files Written
 | File | Guaranteed Fields / Sections | Notes |
 |------|------------------------------|-------|
-| `production/epics/[epic-slug]/story-NNN-[slug].md` | `Epic:`, `Status:`, `Layer:`, `Type:`, `Manifest Version:`, `## Context` (GDD path + `TR-[system]-NNN` + ADR reference + ADR Decision Summary + Engine/Risk + Engine Notes + Control Manifest Rules), `## Acceptance Criteria`, `## Implementation Notes`, `## Out of Scope`, `## Test Evidence`, `## Dependencies` | Created per story |
+| `production/epics/[epic-slug]/story-NNN-[slug].md` | `Epic:`, `Status:`, `Layer:`, `Type:`, `Manifest Version:`, `## Context` (GDD path + `TR-[system]-NNN` + ADR reference + ADR Decision Summary + Engine/Risk + Engine Notes + Control Manifest Rules), `## Acceptance Criteria`, `## Implementation Notes`, `## Out of Scope`, `## Files`, `## Test Evidence`, `## Dependencies` | Created per story |
 | `production/epics/[epic-slug]/EPIC.md` | `## Stories` table replacing the "Not yet created" placeholder | Updated in-place; a return visit appends rows for new stories only. At `minimal`, when none exists yet, the skill creates it from the brief, after the write ask names it |
 | `production/epics/index.md` | The epic's `Stories` column set to `[N] stories` | Only when the index exists; otherwise the run prints `Epics index not updated: production/epics/index.md absent` |
 
 ### Output Guarantees
 - Every story file contains a `TR-[system]-NNN` reference in its `## Context` section (or `TR-[system]-???` with a warning if the registry has no match) — at `minimal`, `Brief MVP feature N` instead
-- Every story file contains an `ADR Governing Implementation:` line referencing at least one ADR, or an explicit `No ADR applies` note
-- Every story file has a `Status:` field — either `Ready` or `Blocked` (if the governing ADR is `Proposed`, `Deprecated` or `Superseded`)
+- Every story file contains an `ADR Governing Implementation:` line referencing at least one ADR, or an explicit `ADR: N/A — [reason]` line
+- Every story file has a `Status:` field — either `Ready` or `Blocked` (if the governing ADR is `Proposed`, `Deprecated` or `Superseded`, or an ADR it depends on is not `Accepted`)
 - Every story file has a `Type:` field — one of: Logic, Integration, Visual/Feel, UI, Config/Data
 - Every story file has a `Manifest Version:` field matching the date from `docs/architecture/control-manifest.md`'s header at time of writing — at `minimal`, `N/A (minimal — no control manifest)`
 - Every story file has a `## Test Evidence` section stating the expected evidence location for its type
 - Every story file has a `## Acceptance Criteria` section with at least one checkbox item copied from the GDD — at `minimal`, derived from `design/game-brief.md` (its Player goal & fail state and the MVP feature the story implements)
-- Every story file has a `## Dependencies` section (may say "None" but is never omitted)
+- Every story file has a `## Dependencies` section naming each story it needs by path (may say "None" but is never omitted)
+- Every story file has a `## Files` section listing the code and test files it is planned to create or change; `/dev-story` replaces the list with the files it changed, and `/story-done` checks scope against it
 - The EPIC.md `## Stories` table is updated with a row per story including `#`, `Story` title, `Type`, `Status`, and `ADR`
 - Stories with a `Proposed` ADR have `Status: Blocked` and a note: `BLOCKED: ADR-NNNN is Proposed — accept it with /architecture-decision accept ADR-NNNN once decided`; a `Deprecated` or `Superseded` ADR blocks the same way, naming its successor
 - Every story file has an `Engine` and a `Risk` field. `Risk` is taken from `docs/engine-reference/<engine>/VERSION.md`; when that file is missing or assigns no level, `Risk` is **`NOT ASSESSED (no VERSION.md risk rating)`** — never a guessed level
-- **`NOT ASSESSED` is an emittable value of the `Risk` field**, and downstream readers must handle it. `/dev-story` treats it as HIGH when deciding whether to spawn the engine specialist: an unknown risk is not a low one
+- **`NOT ASSESSED` is an emittable value of the `Risk` field**, and downstream readers must handle it. `/dev-story` treats it as HIGH when deciding whether to hand work to the engine specialist: an unknown risk is not a low one
 
 ## Immutability Rules
 - READS but does NOT modify: the epic's GDD, all ADR files, `docs/architecture/tr-registry.yaml`, `docs/architecture/control-manifest.md`
@@ -88,4 +89,4 @@ It assumes:
 - If `control-manifest.md` is regenerated with a new `Manifest Version:` date after stories are written, all existing stories will show a stale manifest version and fail the readiness manifest check — every story in the epic will need its `Manifest Version:` updated
 - If a governing ADR is renumbered or its file is renamed after stories are written, the `ADR Governing Implementation:` reference in story files will point to a missing file and `/story-readiness` will BLOCK those stories
 - If `tr-registry.yaml` deprecates or supersedes a TR-ID that is already embedded in story files, `/story-readiness` will flag those stories as NEEDS WORK
-- The EPIC.md Stories table update is append-style — if `/create-stories` is run twice for the same epic, duplicate rows will appear in the table
+- The EPIC.md Stories table update is append-style: a return visit appends rows only for new stories, so a hand-edited table that drops the story numbers can gain duplicate rows

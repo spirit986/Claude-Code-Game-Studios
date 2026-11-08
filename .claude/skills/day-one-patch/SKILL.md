@@ -4,7 +4,7 @@ description: "Day-one launch patch — focused fix for known issues found after 
 argument-hint: "[scope: known-bugs | cert-feedback | all]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Write, Edit, Agent, AskUserQuestion
 model: sonnet
 ---
 
@@ -261,4 +261,5 @@ Use `AskUserQuestion`:
 - **Rollback plan first, always** — a patch without a rollback plan is irresponsible
 - **Deferred is not forgotten** — every deferred bug is listed in the record's
   "Deferred to 1.1" table; run `/bug-triage` afterwards to schedule them into the 1.1 sprint
+  (if the project has no sprint plan, as on the default minimal workflow, into the brief's build order)
 - **Player communication is part of the patch** — `/patch-notes` is a required output, not optional

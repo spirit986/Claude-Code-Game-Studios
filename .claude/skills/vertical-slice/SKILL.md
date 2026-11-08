@@ -3,14 +3,16 @@ name: vertical-slice
 description: "Pre-production validation — end-to-end build to confirm the full loop is achievable before committing to Production. After GDDs, architecture, UX specs."
 argument-hint: "[--review full|lean|solo]"
 user-invocable: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, Bash(bash "*/.claude/skills/vertical-slice/../../hooks/yaml-helper.sh" resolve_config *)
+allowed-tools: Read, Glob, Grep, Write, Edit, Agent, AskUserQuestion, Bash(bash "*/.claude/skills/vertical-slice/../../hooks/yaml-helper.sh" resolve_config *)
 model: sonnet
 ---
 
-!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys review_mode,automation`
+!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys review_mode,automation,workflow`
 
 Resolved above — use as-is; `--review` overrides `review_mode` for this run. No
 block → defaults in `.claude/docs/config-resolution.md`.
+
+# Vertical Slice
 
 
 
@@ -49,7 +51,10 @@ Every `AskUserQuestion` call follows `.claude/docs/automation-modes.md`
 (collaborative asks always · guided major-only · autonomous logs and proceeds;
 `automation_always_ask` categories always prompt).
 
-Read the following files to understand the full design intent:
+Read the following files to understand the full design intent. Read each GDD, ADR
+and the control manifest by section: find the headings you need with
+the Grep tool (pattern `^#`, content mode) and Read those ranges with offset
+and limit.
 - `CLAUDE.md` — tech stack and engine
 - `design/gdd/game-concept.md` — core fantasy and game pillars (or
   `design/game-brief.md`, the one-page brief that replaces it at `rigor: minimal` —
@@ -251,7 +256,8 @@ Track velocity throughout the build. Log:
 - etc.
 
 This is the most honest data you will ever have about your production rate. Do not
-skip it. It feeds directly into sprint planning.
+skip it. It feeds directly into sprint planning (at `workflow: minimal`, which has
+no sprints, into the brief's build order).
 
 Read `.claude/docs/templates/vertical-slice-report.md` to get the report structure.
 If the template file is not found, use this fallback structure:
@@ -330,7 +336,10 @@ Link to `prototypes/[concept-name]-vertical-slice/REPORT.md`.
 Your vertical slice validated the full game loop. The project is ready for
 Production.
 
-Recommended next steps:
+At `workflow: minimal`: `/create-stories` (from the brief), then `/dev-story`
+on the first story — the rest of this list is the `standard`/`full` path.
+
+Recommended next steps (`standard`/`full`):
 - `/create-epics layer:foundation` — plan Foundation layer epics
 - `/create-epics layer:core` — plan Core layer epics
 - `/create-stories [epic-slug]` — break each epic into implementable stories

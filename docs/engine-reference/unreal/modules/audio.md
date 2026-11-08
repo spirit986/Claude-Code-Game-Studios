@@ -1,7 +1,21 @@
 # Unreal Engine 5.8 — Audio Module Reference
 
-**Last verified:** 2026-08-16
-**Knowledge Gap:** MetaSounds production-ready (5.7); WASAPI Windows backend, Audio Insights production-ready, subtitle API changes (5.8)
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Knowledge Gap:** UE 5.7 MetaSounds production-ready; UE 5.8 WASAPI default on Windows
+
+> **UE 5.8 changes:** The default Windows audio backend is now WASAPI
+> (XAudio2 is an opt-in fallback; Epic: "No changes are required on the
+> developers end"). `au.EnableRelativeRenderCostVoiceLimit` is on by default,
+> so fewer sounds may play under the same voice count — revisit voice-count
+> tuning. Attenuation submix sends that were implicitly disabled by
+> `bEnableSubmixSends` may now be audible. Audio Insights is production-ready;
+> Audio Subtitles is Beta; MetaSound Node Configuration and Templates are
+> Experimental. Custom MetaSound nodes: `FNodeClassMetadata::DefaultInterface`
+> now takes `FClassInterface`. Source: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
+>
+> Subtitles: `QueueSubtitle` is deprecated. Use `QueueSingleSubtitle`, or
+> `QueueSubtitlesFromAsset` to queue every line in an asset in one call with
+> timing offsets applied (5.8 release notes, checked 2026-11-08).
 
 ---
 
@@ -11,19 +25,6 @@ UE 5.8 audio systems:
 - **MetaSounds**: Node-based procedural audio (RECOMMENDED, production-ready)
 - **Sound Cues**: Legacy node-based audio (use for simple cases)
 - **Audio Component**: Play sounds on actors
-- **WASAPI**: Default Windows audio backend since 5.8 (XAudio2 is opt-in fallback)
-- **Audio Insights**: Production-ready monitoring/debugging suite (5.8)
-
----
-
-## What's New in UE 5.8
-
-- **WASAPI is the default Windows backend** — XAudio2 requires config opt-in; re-verify Windows audio and middleware after upgrading
-- **Audio Insights production-ready**: loudness metering, signal-flow visualization, live monitoring, event logging
-- **Subtitles (Beta)**: `QueueSubtitle()` deprecated → use `QueueSingleSubtitle()` or `QueueSubtitlesFromAsset()` (queues all lines with timing offsets); per-platform overrides, locale-specific durations
-- **Waveform Editor (Beta)**: decoupled fades, transformation reimport
-- **MetaSound node configuration**: `FVertexInterface` replaced by `FClassInterface`; legacy input node helpers removed from `IDataTypeRegistry`
-- **MetaSound Templates / Node Configuration (Experimental)**: property-driven procedural graph generation
 
 ---
 
@@ -298,5 +299,5 @@ if (Distance > MaxAudibleDistance) {
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/audio-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/metasounds-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/audio-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/metasounds-in-unreal-engine/

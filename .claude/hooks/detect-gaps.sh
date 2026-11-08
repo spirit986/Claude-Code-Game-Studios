@@ -11,16 +11,19 @@
 # project, not this one. Resolving to the script's own location first would
 # override them. So, in order:
 #   1. cwd holds project.yaml   -> cwd   (a project root)
-#   2. cwd holds .claude/       -> cwd   (a project root not yet configured)
-#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment)
+#   2. cwd holds .claude/       -> cwd   (a project root not yet configured),
+#      unless cwd is itself named .claude: a stray .claude/.claude/ would
+#      make .claude/ a root, and the hooks would write .claude/production/
+#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment),
+#      unless it names a .claude folder, for the same reason as rule 2
 #   4. this script's location   -> <root>/.claude/hooks/../.. by construction
 # Rule 4 always works and needs no environment at all; rules 1-2 stop it from
 # overriding a caller that legitimately means somewhere else.
 #
 # NOT an upward search: that resolves a nested project to its parent's config.
-if [ -f "project.yaml" ] || [ -d ".claude" ]; then
+if [ -f "project.yaml" ] || { [ -d ".claude" ] && [ "${PWD##*/}" != ".claude" ]; }; then
   CCGS_ROOT="$PWD"
-elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ]; then
+elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ] && case "${CLAUDE_PROJECT_DIR%/}" in */.claude|*\\.claude) false ;; *) true ;; esac; then
   CCGS_ROOT="$CLAUDE_PROJECT_DIR"
 else
   CCGS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)"
@@ -198,18 +201,24 @@ else
   SRC_FILES=0
 fi
 
+# Only the GDDs at the top of design/gdd/ count, as in the commit check: copies
+# in a subfolder such as archive/ are not the project's design.
 if [ -d "design/gdd" ]; then
-  DESIGN_FILES=$(find design/gdd -type f -name "*.md" 2>/dev/null | wc -l)
+  DESIGN_FILES=$(find design/gdd -maxdepth 1 -type f -name "*.md" 2>/dev/null | wc -l)
+  SUB_DESIGN_FILES=$(find design/gdd -mindepth 2 -type f -name "*.md" 2>/dev/null | wc -l)
 else
   DESIGN_FILES=0
+  SUB_DESIGN_FILES=0
 fi
 
 # Normalize whitespace from wc output
 SRC_FILES=$(echo "$SRC_FILES" | tr -d ' ')
 DESIGN_FILES=$(echo "$DESIGN_FILES" | tr -d ' ')
+SUB_DESIGN_FILES=$(echo "$SUB_DESIGN_FILES" | tr -d ' ')
 
 if [ "$DOC_CHECKS" = true ] && [ "$SRC_FILES" -gt 50 ] && [ "$DESIGN_FILES" -lt 5 ]; then
   echo "⚠️  GAP: Substantial codebase ($SRC_FILES source files) but sparse design docs ($DESIGN_FILES files)"
+  [ "$SUB_DESIGN_FILES" -gt 0 ] && echo "    Not counted: $SUB_DESIGN_FILES .md file(s) in design/gdd/ subfolders (such as archive/)"
   echo "    Suggested action: /reverse-document design ${CODE_ROOT:-<code root>}/[system]"
   echo "    Or run: /project-stage-detect to get full analysis"
 fi

@@ -32,7 +32,7 @@ DRY=0
 
 case "${1:-}" in
   --help|-h)
-    sed -n '2,30p' "$0" | sed 's/^# \?//'
+    sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
     exit 0 ;;
   --dry-run) DRY=1 ;;
   "") ;;
@@ -44,7 +44,14 @@ if [ ! -f "$STATE" ]; then
   exit 0
 fi
 
-if ! grep -q '<!-- /CHECKPOINT -->' "$STATE"; then
+# The marker is a line holding only `<!-- /CHECKPOINT -->` (spaces and a CR
+# around it allowed). The same words inside a sentence are not one: the
+# template's own HOW comment quotes the marker, and matching that quote split
+# every file made from the template inside the comment, moving the live
+# checkpoint into the session log.
+MARKER='^[[:space:]]*<!-- /CHECKPOINT -->[[:space:]]*$'
+
+if ! grep -q "$MARKER" "$STATE"; then
   echo "REFUSED: $STATE has no <!-- /CHECKPOINT --> marker."
   echo "  Rotation splits the file at that marker, so without it this script"
   echo "  cannot tell the checkpoint from the narrative and would move both."
@@ -53,7 +60,7 @@ if ! grep -q '<!-- /CHECKPOINT -->' "$STATE"; then
 fi
 
 # Everything through the marker is the checkpoint; everything after is narrative.
-SPLIT=$(grep -n '<!-- /CHECKPOINT -->' "$STATE" | head -1 | cut -d: -f1)
+SPLIT=$(grep -n "$MARKER" "$STATE" | head -1 | cut -d: -f1)
 TOTAL=$(wc -l < "$STATE" | tr -d ' ')
 NARRATIVE=$((TOTAL - SPLIT))
 
