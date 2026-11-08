@@ -7,7 +7,7 @@ allowed-tools: Read, Glob, Grep, Write, Bash(bash "*/.claude/skills/soak-test/..
 model: sonnet
 ---
 
-!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation`
+!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation,workflow`
 
 **Automation mode**: Resolve `modes.automation` (`project.local.yaml` →
 `project.yaml` → default `collaborative`). Every `AskUserQuestion` call and
@@ -68,7 +68,9 @@ Read:
 - `design/gdd/game-concept.md` — intended session length (for comparison against
   soak duration), core loop description (or `design/game-brief.md`, the one-page
   brief that replaces it at `rigor: minimal` — core loop, and session length only
-  if its "Who it's for" line states one)
+  if its "Who it's for" line states one). Read it by section: find the headings you
+  need with the Grep tool (pattern `^#`, content mode) and Read those ranges
+  with offset and limit.
 - Most recent file in `production/qa/playtests/` — prior playtest findings
   (to avoid re-documenting known issues)
 - Most recent file in `production/qa/qa-plan-*.md` — current sprint test coverage
@@ -106,14 +108,6 @@ Engine-specific monitoring guidance.
 > delta against this session's own T+0 baseline* — which is unit-agnostic and
 > stays correct however the editor reports the number. Write the unit down at
 > T+0 exactly as displayed and use it consistently for the rest of the run.
->
-> This replaces a note asserting the return units of
-> `Performance.get_monitor` — **NOT SOURCEABLE from `docs/engine-reference/`**,
-> the identifier appears nowhere in it — a claim that sat one line under a row asking
-> the tester to record "Static Memory (**KB**)". A wrong units claim in a leak
-> detector is off by 1024× in the one measurement the protocol exists to take,
-> and it would read as a plausible instruction throughout. Deltas need no such
-> claim, so the safest fix was to stop needing it.
 
 > **NOT SOURCEABLE — the tool, panel and counter names below are not covered by
 > `docs/engine-reference/`**: Godot's Debugger → Monitors and its memory
@@ -143,9 +137,9 @@ Engine-specific monitoring guidance.
 - Use `stat memory` console command at each checkpoint
 - Record: Physical Memory Used, Physical Memory Available (**units as displayed**)
 - Alert threshold: Physical Memory Used growth **> 20% over the full soak**,
-  measured against this run's T+0. The previous threshold was an absolute
-  "> 50MB", which silently assumes both the unit *and* a project scale — 50MB is
-  a rounding error for one game and a catastrophe for another
+  measured against this run's T+0. An absolute threshold such as "> 50MB"
+  silently assumes both the unit *and* a project scale — 50MB is a rounding
+  error for one game and a catastrophe for another
 
 ### Stability observation items (if focus = stability or all)
 
@@ -322,7 +316,7 @@ After writing:
 2. Record each checkpoint as you play
 3. Complete the Post-Session Analysis section when done
 4. File bugs from 'Issues Found' to `production/qa/bugs/`
-5. Run `/bug-triage sprint` after the session to integrate any S1/S2 issues
+5. Run `/bug-triage sprint` after the session to integrate any S1/S2 issues (at `workflow: minimal`, which has no sprints: `/bug-triage full`)
 
 If the verdict is FAIL, run `/smoke-check` again after fixing the issues."
 

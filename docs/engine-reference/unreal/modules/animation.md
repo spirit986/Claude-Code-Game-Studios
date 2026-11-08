@@ -1,7 +1,16 @@
 # Unreal Engine 5.8 — Animation Module Reference
 
-**Last verified:** 2026-08-16
-**Knowledge Gap:** UE 5.7 animation authoring improvements, Control Rig 2.0; 5.8 Control Rig Physics/Dynamics, Mutable production-ready, Sequencer looping change
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Knowledge Gap:** UE 5.4-5.8 animation authoring improvements, Control Rig 2.0
+
+> **UE 5.8 changes:** Smart names are deprecated — `FSmartName`,
+> `FSmartNameMapping` and `FSmartNameContainer` carry `UE_DEPRECATED(5.8, "Smart
+> names and their mappings are no longer used")` (`Engine/Source/Runtime/Engine/Classes/Animation/SmartName.h`).
+> Non-reflected deprecated Animation, Control Rig, Persona and Live Link APIs
+> from 5.0-5.6 were removed (e.g. `UMotionWarpingComponent::GetCharacterOwner`
+> → `GetOwnerAdapter()->GetActor()`). Control Rig Physics and the RigMapper
+> retargeting tool are Beta; Animation Mixing in Sequencer and Direct Mesh
+> Controls are Experimental. Source: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
 
 ---
 
@@ -12,19 +21,6 @@ UE 5.8 animation systems:
 - **Control Rig**: Runtime procedural animation (production-ready in UE5)
 - **IK Rig + Retargeter**: Modern retargeting system
 - **Sequencer**: Cinematic animation
-- **Mutable**: Runtime character customization (production-ready in 5.8)
-
----
-
-## What's New in UE 5.8
-
-- **Mutable production-ready**: dataless customizable objects, skeletal mesh support — use for character/equipment customization
-- **Control Rig Physics (Beta)**: force-based functionality with layered rig compositing
-- **Control Rig Dynamics**: new lightweight particle-based solver, ~5x runtime performance improvement
-- **Animation Mixing in Sequencer (Experimental)**: layer/mask animations without separate Blueprint slots
-- **RigMapper (Beta)**: 5.7's Remap Curves Stack workflow replaced by rig mapper user data ops
-- **⚠️ Behavioral change**: Sequencer animation section looping redefined (completion-based); `KeepState`/`RestoreState` logic changed — re-test cinematics
-- **Skeletal Editor**: blendshape tools, joint locking, morph target editing, lattice deformers
 
 ---
 
@@ -300,6 +296,6 @@ DrawDebugCoordinateSystem(GetWorld(), BoneLocation, BoneRotation, 50.0f, false, 
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/animation-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/control-rig-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/ik-rig-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/animation-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/control-rig-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/ik-rig-in-unreal-engine/

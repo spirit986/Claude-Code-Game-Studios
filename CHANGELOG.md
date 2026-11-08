@@ -8,6 +8,384 @@ existing project on the older config files.
 
 ---
 
+## [1.2.0] — 2026-10-19
+
+**The story skills are rebuilt around shared helper scripts, a read guard stops
+whole-file reads of large design docs, the engine references move to Godot 4.7
+and Unreal Engine 5.8, and no skill pre-approves every shell command any more.**
+A minor release. [UPGRADING.md](UPGRADING.md#v113--v120) lists the
+`settings.json` merges, the new files and the renamed `studio-tests/` folder.
+
+### Added
+
+- **Session start says when a newer release is out**, in one line with the
+  release page and how to stop the notice; nothing is downloaded or changed.
+  The hook only reads a per-user cache outside your project. A background job
+  refreshes it by asking GitHub for the latest release at most once a day, so
+  session start never waits and nothing about your project is sent. Turn it off
+  with `/settings --local updates.check=false`, or for the team with
+  `updates.check: false` in `project.yaml`; it is always off when `CI` is set.
+- **A read guard for large design docs.** The new `validate-read.sh` hook
+  refuses a whole-file read of a doc over 40 KB under `design/`,
+  `docs/architecture/` or `production/session-state/` and answers with its
+  headings by line, so the retry reads one section; a ranged read always
+  passes. Coordination rule 6 and most skills that read a GDD, ADR or the art
+  bible now read by section. `features.read_guard: off` (or `false`) turns it off and
+  `features.read_guard_kb` sets the size (#136, #140, suggested by @mamonbleau).
+- **Evidence knows when its code changed.** `/dev-story` writes `stamp.txt`
+  beside a story's retained screenshots, recording the files they prove.
+  `/story-done` and `/test-evidence-review` name each of those files changed
+  since ("re-capture it"), or say "no stamp" for older evidence. They report it
+  and never block on it (#135, proposed by @jiangshoujie).
+- **Stories list their files.** The new story template,
+  `.claude/docs/templates/story.md`, has a `## Files` section: `/create-stories`
+  lists the planned files, `/dev-story` replaces them with the files it changed,
+  and `/story-done` checks scope against the list. Its scope check used to look
+  for a list no story had, so it could not run.
+- **Helper scripts answer what skills worked out by hand.** New scripts in
+  `.claude/scripts/` read story facts, ADR status, a Markdown section to its next
+  heading, the project's stage, the session checkpoint and config writes. The
+  rebuilt skills and `/settings` use them, so the same question gets the same
+  answer each time and a long section is never cut off by a fixed-size grep.
+  More ship alongside them for you to run: bug counts, code markers,
+  sprint arithmetic, tech-debt scores, flaky-test rates, asset checks, content
+  counts, test runs and test scaffolding. Each prints observations, not
+  verdicts, and has `--help`. All but `agent-check.sh` and
+  `compat-inventory.sh`, which need Python 3, need only bash and awk. `resolve_config` also
+  answers six more questions for skill authors (`gate_level`, `engine_values`,
+  `specialists`, `review_gate`, `input_methods`, `perf_budgets`).
+- **Registry checks.** `registry.sh` lists, looks up and validates the three
+  registries and hands out the next ID as the highest ever used plus one, so a
+  retired ID is never reused. It reads the unquoted `status: superseded_by:`
+  lines 1.1.3's `/architecture-decision` wrote, and names each one to quote. The new `validate-registry.sh` hook warns when a
+  write to the entity or TR-ID registry would delete or renumber an entry or set
+  a status the header does not list, and the skills that write a registry
+  validate it afterwards.
+- **Write rules that warn, never block.** `validate-write.sh` flags a write
+  that would replace a file skills never overwrite (an existing `EPIC.md`,
+  `project.godot`, an engine reference doc), set a config value outside its
+  list, cross the prototype boundary or break a localization freeze.
+  `validate-agent-artifact.sh` tells you when a subagent stops without writing
+  the file its brief named.
+- **`/sprint-plan` checks the sprint goal can be shown.** It lists what showing
+  the goal needs (the scene it runs in, the setting that starts it, anything a
+  picked story names but none builds) and reports any gap in a new Goal
+  Prerequisites section and in Risks, without blocking (based on an idea in #76
+  by @FreedomPortal).
+- **Rules for engine scene and asset files**, which a bad hand edit can corrupt.
+  The new path-scoped `.claude/rules/scene-files.md` covers `.tscn`, `.tres`,
+  `.unity`, `.prefab` and `Assets/**/*.asset`: use the editor where you can,
+  never invent a Godot `uid://`, never hand-edit Unity YAML while an Editor is
+  reachable. `settings.json` denies `Edit(**/*.uasset)` and `Edit(**/*.umap)`,
+  which covers writes too.
+- **Agents never file upstream.** Coordination rule 7: no agent files, opens or
+  comments on an issue or pull request in an engine, plugin or vendor
+  repository, even when asked. It writes a draft for you to submit, and
+  `/bug-report` says it drafts only.
+- **`/skill-test static` checks agents and Claude Code-only features**:
+  descriptions close enough to pick the wrong agent, an agent told to ask the
+  user, settings Claude Code ignores, and each place a skill, agent, hook or
+  setting depends on something only Claude Code provides. These never change a
+  verdict. `/skill-test` and `/skill-improve` now say what a pass proves: they
+  read files and never run the skill.
+- **New templates** in `.claude/docs/templates/` for layouts the skills write,
+  from bug reports and certification checklists to `/help` output and
+  `sprint-status.yaml`. `/create-stories` writes from `story.md`; the other
+  skills do not use the new layouts yet. The GDD template is now exactly the
+  skeleton `/design-system` writes, its guidance moved to
+  `guidance/game-design-document-guide.md`.
+
+### Changed
+
+- **Six skills rebuilt to Anthropic's skill-authoring guidance.**
+  `/create-stories`, `/story-readiness`, `/create-epics`, `/dev-story`,
+  `/story-done` and `/start` are shorter: the main path in `SKILL.md`, rare
+  branches in `references/` (`/start` is a single `SKILL.md`), fixed steps in
+  the helper scripts. `/dev-story` and
+  `/story-done` replace 1.1.3's numbered phase files with fewer, named ones, and
+  `/brainstorm` loads its full concept flow only at `standard` and `full`.
+  - `/start` works out the rigor from what you describe and shows it with the
+    stage on one card with a single Save them / Don't save question.
+  - `/create-stories` reports each governing ADR's status before drafting and
+    blocks a story whose ADR depends on one not yet Accepted; `/create-epics`
+    marks a requirement whose only ADR is Proposed, so that block still holds.
+  - `/dev-story` hands every code story's changed files to the engine
+    specialist, and its brief rules out one-off helpers, handling for errors
+    that cannot happen, and values special-cased so a test passes.
+  - `/story-done`'s report carries a **Reviewed by** line that is never blank:
+    `lead-programmer`, `/code-review (you said you ran it; not verified here)`
+    or `self, no independent review` (#135).
+- **Engine references move to Godot 4.7 and Unreal Engine 5.8.** The Godot
+  docs cover 4.7 (latest patch 4.7.2): AreaLight3D, HDR output, the Asset
+  Store, VirtualJoystick, Jolt changes and typed-return overrides. Unreal 5.8
+  (latest hotfix 5.8.3) is recorded across the breaking changes, deprecated
+  APIs, modules and plugins. Unity stays on 6.3 LTS, the newest LTS, and lists 6.4 to
+  6.6 and the 6.7 beta as newer releases with unconfirmed APIs. Timelines carry
+  vendor-sourced dates; Unreal's pooling sample and GAS tag calls are corrected.
+  Where the 5.8 editor disagrees with Epic's release notes, the Unreal reference
+  says so: MegaLights' tooltip still calls it Experimental and says it needs
+  hardware ray tracing and skips directional lights, and the Iris plugin still
+  carries a Beta flag.
+  Staying on Godot 4.6 or Unreal 5.7? Keep your current engine folder.
+- **CI templates.** `/test-setup` writes `actions/checkout@v7` and
+  `actions/upload-artifact@v7` (a self-hosted runner needs 2.327.1 or newer)
+  and names Godot 4.7.2 and gdUnit4 6.2. On Godot 4.7, `/setup-engine` runs a
+  new project's first import again when it exits 139, a crash on exit after
+  the import has finished.
+- **Worktrees start from your current commit and get your local config.**
+  `settings.json` sets `worktree.baseRef: "head"`, so a worktree (the
+  prototyper's, an isolated subagent's, `claude --worktree`) starts from your
+  commit, not the remote's default branch. The new `.worktreeinclude` copies
+  `project.local.yaml`, `CLAUDE.local.md` and `.claude/settings.local.json` into
+  it, and `.gitignore` ignores `.claude/worktrees/`. The prototyper names its
+  worktree and branch, lists uncommitted files it cannot see and asks you to
+  commit the ones it needs, pulls Git LFS files when the project uses LFS, and
+  says which checks it could not run.
+- **Hooks that did nothing stop running.** `post-compact.sh` is removed: Claude
+  Code discards its output, and `session-start.sh` already restores context.
+  The Stop hook runs in the background, so it no longer holds up a turn, and
+  `notify.sh` fires for permission and idle prompts only.
+- **Agents end their turn with the question.** The 49 agents were told to "wait
+  for yes", which an agent started by a skill cannot do; they now end the turn
+  with the draft and the question for the caller to put to you. `/balance-check`,
+  `/tech-debt` and `/bug-report` do the same when run as a subagent.
+- **`/settings` refuses a bare `testing.strict` other than `true` or `false`**
+  instead of writing it, and suggests the nearest known key and asks before
+  writing an unknown one (#135).
+- **`/prototype` is capped at one day everywhere**; `/team-release` may start
+  `/release-checklist`; `/launch-checklist` runs only when you type it.
+- **The skill and agent spec folder is now `studio-tests/`**, renamed from
+  `CCGS Skill Testing Framework/`. Every skill spec pins the settings its cases
+  assume, and `/settings` has a spec. UPGRADING says how to move your own specs;
+  `/skill-test` and `/skill-improve` say so while the old folder is still there.
+- **`/create-stories` proposes an estimate.** Each story gets a size (`S`, `M`
+  or `L`) that you can change before the stories are written. `/story-readiness`
+  still fails a story with no estimate at `standard` and `full`, and a new story
+  now has one.
+- **`yaml-helper.sh` answers six read-only lookups directly**, run from the
+  project root (`bash .claude/hooks/yaml-helper.sh resolve_setting <key>` and
+  five more); `/settings` and `/perf-profile` use them.
+- **`.gitattributes` keeps awk programs and `.worktreeinclude` LF** on every
+  checkout, `core.autocrlf=true` on Windows included.
+
+### Fixed
+
+- **A repeated key in `project.yaml` is merged and named.** A second `modes:`
+  block wiped the first while the schema check passed. Blocks are now merged,
+  and session start, `/settings` and `resolve_config` name the repeated keys.
+- **A saved review is reused only when nothing it read has changed.**
+  `/architecture-review` reused its last report after an engine upgrade or a
+  TR registry, `architecture.md` or budget change. It now checks every file it
+  read, names a deleted GDD or ADR, and never stands on a narrower report.
+  `/design-review` logs its mode and tier.
+- **`/design-review` checks every place a registry value appears**, so a value
+  restated in a long GDD's tables (an enemy's health, a drop rate) that
+  contradicts the registry is a blocking item with its line number.
+- **`/story-readiness` asks for as many acceptance criteria as
+  `story_granularity` wrote** (coarse 3/2/1, balanced 2/2/1, fine 1), instead of
+  demanding three of a Logic story written at `fine` or `balanced`.
+- **Requirement IDs and ADRs.** `/create-architecture` keeps registered TR-IDs
+  and marks new ones provisional, so a re-run no longer renumbers what stories
+  cite. `/architecture-review` may now Edit, so its appends to
+  `tr-registry.yaml` stop rewriting the whole file. `/architecture-decision`
+  writes the ADR Layer row; without it every ADR counted as critical, turning
+  advisory items into blockers at `standard`. A superseded status is written
+  quoted, as YAML requires.
+- **The commit check** skips GDD copies in `design/gdd/` subfolders such as
+  `archive/` (#133), checks the copy the commit takes, and reads a PowerShell
+  `git add` path with backslashes. `gdd-structure-check.sh` names sections
+  holding only `[To be designed]` as placeholders.
+- **Session start.** A stray `.claude/.claude/` no longer makes hooks write
+  `.claude/production/`, and neither does a `CLAUDE_PROJECT_DIR` that points at
+  `.claude/` itself. The checkpoint preview says when it was written on
+  another branch. "Open bugs" counts only bugs that are not Closed or Verified
+  Fixed. The sparse-design-docs notice counts only the GDDs at the top of
+  `design/gdd/`, as the commit check does, and names the copies in subfolders
+  such as `archive/` that it skipped.
+- **Rotating `active.md` keeps the live checkpoint**; it used to move it into
+  the session log when the file came from the template.
+- **Missing prerequisites name the skill that makes them**: `/dev-story` and
+  `/story-done` with no story point to `/create-stories`, and `/create-epics`
+  stops without `architecture.md` at `standard` and `full`.
+- **`/adopt`'s "help me find them" option works**: it searches by heading,
+  shows where each doc belongs and asks before moving it with `git mv`. At
+  `workflow: minimal`, a project whose code already holds the game is sent to
+  `/reverse-document design [code root]`, not `/brainstorm`.
+- **`/estimate` measures the size and branching it asks for**, from Grep counts
+  reported as an approximation.
+- **A partial check says what it skipped.** A focused `/review-all-gdds` labels
+  its verdict ("consistency only") and does not count as a full review at the
+  Technical Setup gate; `/smoke-check quick` says coverage was not checked, and
+  the Polish and Release gates do not count it. The Pre-Production gate counts
+  an `/architecture-review` report only for what its mode checked: a
+  `single-gdd` or `consistency` report no longer passes the Foundation-gap and
+  engine-audit items, and a report from before 1.2.0, which has no `Mode:`
+  line, counts for none of them.
+- **A stage never advances past a check that could not run.** A gate with a
+  concern and an unrun required check returned CONCERNS, and accepting the
+  concerns moved the stage. `/gate-check` now offers no override until that
+  check runs, and its report names it.
+- **`/sprint-plan` asks before it writes the plan**, even after a "yes, go
+  ahead" to its QA-plan question, which it used to take as approval to write.
+- **Godot no longer imports `production/`.** In a Godot project the evidence
+  screenshots in `production/qa/evidence/`, and the `.wav` Movie Maker writes
+  beside them, were imported as game resources with `.import` files, and a
+  default export packed them into the game. The new `production/.gdignore`
+  makes Godot skip the folder.
+- **Playtest records count as test evidence.** `/story-done`,
+  `/test-evidence-review` and `/qa-plan` looked for them in
+  `production/session-logs/`, which is gitignored. They now read
+  `production/qa/playtests/`, where `/playtest-report` writes them.
+- **`/help` and `/gate-check` see when stories are missing.** Two `EPIC.md`
+  files counted as the two story files the Create Stories step needed, so the
+  step read as done before any story existed.
+- **ADR cycles name only the ADRs on the cycle.** `adr-dep-graph.sh` also
+  listed every ADR that depends on a cycle, so the advice was to cut a
+  legitimate dependency. It now also prints a build order and names a Depends On
+  row still holding the template text, instead of reading it as no dependency.
+- **`/architecture-review single-gdd` writes only that system.** Its "write all
+  three files" replaced the project-wide traceability index with one system's
+  rows and could propose retiring other systems' requirements. A review with no
+  ADRs now reports NOT ASSESSED instead of stopping without a report, and the
+  argument hint lists `rtm`.
+- **The architecture skills.** `/architecture-decision` reads the ADRs still to
+  write from `architecture.md`'s Required ADRs, and writes the first entry of an
+  empty registry section as valid YAML. `/create-architecture` says no system
+  goes in the Platform layer, which has no manifest rules.
+- **`/setup-engine` on a new Godot project** reports the gdUnit4 runner it names
+  in `commands.test` as expected until `/test-setup` installs it, instead of
+  asking you to resolve it. It no longer expects `/brainstorm` to recommend an
+  engine: `/brainstorm` records your preference and never recommends one.
+- **Review receipts written on Windows read correctly on Linux and macOS.** A
+  receipt with Windows line endings read every file as CHANGED there.
+- **Pointers to sections that no longer exist** in `/gate-check`,
+  `/setup-engine`, `/create-architecture` and `/create-stories` name the right
+  ones.
+- **A multi-line value in `project.yaml` is read as text.** The lines under a
+  `|` or `>` value were read as settings: a note holding `review_mode: full`
+  could change the review mode, and a `stage:` line in one was reported as an
+  invalid stage. Every reader, the stage writer and `/settings` now skip that
+  text; `/settings` will not overwrite a multi-line value.
+
+### Security
+
+- **Skills pre-approve only the commands they run.** A bare `Bash` entry in
+  `allowed-tools` let 34 skills run any shell command without asking in the
+  default permission mode. Each now names the framework scripts and read-only
+  commands its text runs. Anything else, including your `commands.test`, asks
+  first: approve it once, or add `Bash(<your command> *)` to
+  `.claude/settings.local.json`. A skill you keep your own copy of needs the
+  shipped `allowed-tools:` line.
+- **Tagging, merging and deploying are flagged before they run.** The push check
+  also warns on `git tag`, `git merge`, `gh release`, `butler push` and
+  `steamcmd +run_app_build`, which `/hotfix` and `/team-release` ask about first.
+- **The same `.env` protection with fewer rules.** The three Bash `.env` deny
+  rules are gone: `Read(**/.env*)` and `Edit(**/.env*)` already cover Bash file
+  commands and redirects. `settings-local-template.md` no longer suggests
+  `Bash(git *)`, which approves `git push` too.
+
+---
+
+## [1.1.3] — 2026-10-08
+
+**Long skills keep their later steps through a long session, a question nobody
+answered is never taken as an answer, and the shipped permissions approve
+less.** A fix release for 1.1.2.
+
+### Fixed
+
+- **The 14 longest skills keep their later phases after a compaction.** Claude
+  Code re-attaches only the first part of an invoked skill after a compaction,
+  so the later phases of a long skill could drop out in the middle of a session.
+  `/adopt`, `/architecture-decision`, `/architecture-review`,
+  `/create-architecture`, `/design-system`, `/dev-story`, `/gate-check`,
+  `/prototype`, `/review-all-gdds`, `/setup-engine`, `/smoke-check`,
+  `/story-done`, `/test-setup` and `/ux-design` now keep each phase in its own
+  file in the skill's `references/` folder, read when the phase starts and
+  again after a compaction. The steps themselves are unchanged. The files are
+  named relative to the skill folder, so they are found wherever the skill is
+  installed, and every reference file over 100 lines opens with a list of what
+  it holds. `/skill-test` and `/skill-improve` read those files too, so they
+  judge a split skill whole and put a fix in the file that holds the text.
+- **A question that is skipped, dismissed or comes back empty is not an
+  answer**, in any mode: nothing is written, set or picked on it, and it is
+  asked again in plain text. Guided mode no longer contradicts itself: a new
+  file waits for "May I write?", and an update to an existing file goes ahead
+  after a short summary.
+- **Agents return their options as a short list for the skill to ask.** Fourteen
+  agents were told to use the question tool, which an agent started by a skill
+  does not have.
+- **Settings read from a subfolder use the project root.** Started in `src/`,
+  per-system overrides read as none, notes about invalid or locked values
+  disappeared, and the older `review-mode.txt` and `stage.txt` were never
+  found. `/settings` and `/perf-profile` also work from a subfolder now.
+- **Setting values.** A hand-edited local `platform.cert_tier` no longer
+  overrides the locked value, and an invalid `cert_tier` or `testing.strict`
+  value counts as unset rather than being used. On Windows the locked-key note
+  no longer ends each key with a stray carriage return, and an always-ask item
+  that contains a comma is no longer split in two.
+- **The commit check sees files a `git add` in the same command stages**
+  (`git add -A && git commit`), and no longer asks `systems-index.md`,
+  `game-concept.md` and the other non-system files in `design/gdd/` for GDD
+  sections (#133).
+- **The commit check works for a project in a subfolder of a larger
+  repository.** A game in `game/` of a bigger repo got no data, GDD or code
+  checks at commit; staged paths are now read from the project folder. **A JSON
+  data file stored with Git LFS** is checked through its working copy instead of
+  being blocked as invalid, and one with no working copy is named as skipped.
+- **`/smoke-check` no longer waits forever on Unreal.** The version check ran
+  `UnrealEditor-Cmd -version`, which opens the editor and never returns. It now
+  reads the engine's `Build.version` file.
+- **Registry lookups.** `/design-system` finds the entities other systems
+  reference it from; the requirement lookups in `/create-stories`, `/dev-story`
+  and `/story-done` no longer match `combat-ai` when asked for `combat`; the
+  documented superseded status is valid YAML; `/consistency-check` and
+  `/architecture-review` re-read their registry before writing to it. Your own
+  registry files are not changed.
+- **Next steps at `workflow: minimal`.** Thirteen skills offered only a sprint as
+  the next step; at minimal they now name the brief's build order.
+  `gameplay-programmer` no longer asks for an ADR there, and five templates name
+  `design/game-brief.md` beside the concept doc.
+- **`team-polish` and `team-ui` keep their core members at the `lean` review
+  mode.**
+- **`/scope-check`'s verdict bands no longer overlap** at exactly 10% and 25%.
+- **`/start` writes a single `modes:` block.** Its rigor and automation
+  questions could each add one. If your `project.yaml` has two `modes:` blocks,
+  merge them into one.
+- **Every skill opens with a title.** 39 skills had no top-level heading, and in
+  `/architecture-decision` the first one was the ADR template's placeholder
+  (#83, reported by @specterslient95-lgtm).
+- **A settings line that runs for more than two minutes** reaches the skill as a
+  task notice instead of the settings; `config-resolution.md` now says what that
+  notice means and where to read the settings instead.
+- **The three writes that need no "May I write?"** — agent memory, appends to
+  `active.md`, and an agent's new file at the path its skill named — are now
+  named in `CLAUDE.md`, which named none of them, and in the agent-memory rule,
+  which named one.
+- **Docs corrected**: the settings, workflow and protocol docs, the README, the
+  setup requirements and the 1.1.0 and 1.1.2 notes on what the default
+  permission mode covers, and three overstatements in `/story-done`, the
+  workflow guide and UPGRADING.
+
+### Security
+
+- **The shipped allow rules no longer approve deleting a branch or writing files
+  without asking.** Four allow rules had no space before their `*`, so they
+  matched any text after the command name: `git branch -D` and `-m`, `git log`
+  and `git diff` with `--output=<file>`, and `python -m json.tool <in> <out>`
+  ran without a prompt, and in auto mode an allow rule also skips the
+  classifier. Those rules are removed; read-only git commands such as
+  `git status` and `git log` still run without a prompt. See
+  [UPGRADING.md](UPGRADING.md#v112--v113) if you merged `settings.json` or
+  copied these rules into `settings.local.json`.
+- **Start Claude Code at the project root.** It loads `.claude/settings.json`
+  only from the folder it starts in, so a session started in `src/` or `design/`
+  runs without the project's hooks, deny rules and ask-first mode. The README
+  says so, and Claude now warns when it was started somewhere else.
+- **`.env` files are denied to Edit.**
+
+---
+
 ## [1.1.2] — 2026-09-29
 
 **The default path works end to end, Unity and Unreal get the same care as
@@ -731,8 +1109,10 @@ Code 2.1.281 to 2.1.284, on Windows, Linux (bash 5 and 3.2) and macOS. **If you 
   so the aborting command stopped them at startup with `Shell command permission
   check failed … Contains expansion`. They keep their preloaded skills and still
   have no shell access.
-- **Config is found from any folder.** Starting Claude Code inside `src/` or
-  `design/` now reads the project's `project.yaml`, not nothing.
+- **Skills find `project.yaml` from any folder.** A skill run in a session
+  started inside `src/` or `design/` now reads the project's `project.yaml`, not
+  nothing. Claude Code itself still loads the project's hooks, deny rules and
+  permission mode only when it is started at the project root.
 - **`/changelog` works in a repository with no commits yet.**
 
 Checked on Claude Code 2.1.277 and 2.1.281, in every permission mode, from the
@@ -749,13 +1129,13 @@ studio production no longer have to carry the same overhead.
 
 ### Added
 
-- **Ask-before-write now holds, whatever your personal settings say.** CCGS
-  sets Claude Code's permission mode to `default` in the project settings, so
-  every approval gate in the framework actually fires. If your own Claude Code
-  config runs in an auto-accept mode, that used to switch the whole
-  collaboration protocol off silently and agents would write files you never
-  approved. Override it in `.claude/settings.local.json` if you really want to,
-  but read `.claude/docs/setup-requirements.md` first.
+- **Sessions start in ask-before-write mode.** CCGS sets Claude Code's
+  permission mode to `default` in the project settings, so a terminal session
+  started at the project root asks before writing, even if your own Claude Code
+  config runs in an auto-accept mode. It sets the starting mode only: resuming a
+  session, switching modes mid-session, the VS Code extension and the Desktop
+  app can still put you in another one. `.claude/docs/setup-requirements.md`
+  lists them, and how to change the starting mode.
 
 - **`project.yaml` — one place for your project's configuration.** Engine,
   naming conventions, specialists and process settings all live here. It

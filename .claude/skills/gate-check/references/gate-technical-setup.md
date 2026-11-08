@@ -12,7 +12,7 @@
 
 **Quality Checks:**
 - [ ] All MVP GDDs pass individual design review (8 required sections, no MAJOR REVISION NEEDED verdict)
-- [ ] `/review-all-gdds` verdict is not FAIL (cross-GDD consistency and design theory checks pass). A NOT ASSESSED verdict does not satisfy this: that review could not compare the GDDs, so this item is NOT ASSESSED for the gate
+- [ ] `/review-all-gdds` verdict is not FAIL (cross-GDD consistency and design theory checks pass). A NOT ASSESSED verdict does not satisfy this: that review could not compare the GDDs, so this item is NOT ASSESSED for the gate. Nor does a focus-run report (its `Focus:` line names one pass only): the other pass never ran, so the item stays open until a review runs both
 - [ ] All cross-GDD consistency issues flagged by `/review-all-gdds` are resolved or explicitly accepted
 - [ ] System dependencies are mapped in the systems index and are bidirectionally consistent
 - [ ] MVP priority tier is defined

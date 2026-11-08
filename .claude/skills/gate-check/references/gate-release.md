@@ -12,7 +12,7 @@
 - [ ] QA test plan exists (`/qa-plan` output in `production/qa/`)
 - [ ] QA sign-off report exists (`/team-qa` output — APPROVED or APPROVED WITH CONDITIONS)
 - [ ] All Must Have story test evidence is present (Logic/Integration: test files pass; UI: retained screenshots of each screen touched; Visual/Feel: retained screenshots plus lead sign-off — both in `production/qa/evidence/`, and no `qa.level` waives either)
-- [ ] Smoke check passes cleanly (PASS verdict) on the release candidate build
+- [ ] Smoke check passes cleanly (PASS verdict) on the release candidate build — a full run, not a `quick` one labelled `(quick — …)`
 - [ ] No test regressions from previous sprint (test suite passes fully)
 - [ ] Balance data has been reviewed (`/balance-check` run)
 - [ ] Release checklist completed (`/release-checklist` run)

@@ -1,8 +1,17 @@
 # Godot Rendering — Quick Reference
 
-Last verified: 2026-02-12 | Engine: Godot 4.6
+Last verified: 2026-10-17 (4.7 changes); 2026-02-12 (rest) | Engine: Godot 4.7
 
 ## What Changed Since ~4.3 (LLM Cutoff)
+
+### 4.7 Changes
+- **`AreaLight3D`**: real-time rectangular area lights
+- **HDR output** on Windows, macOS, iOS, visionOS and Linux (Wayland)
+- **`DrawableTexture2D`**: simple API for drawing on textures (4.7 release notes: https://godotengine.org/releases/4.7/)
+- **`CanvasItem` lines**: no antialiasing feather, so lines look thinner
+- **`LinearToSRGB` visual shader** no longer clamps to `[0.0, 1.0]` (Forward+, Mobile)
+- **`get_format()`** moved from `ImageTexture` / `PortableCompressedTexture2D` to `Texture2D`
+- **`rendering/reflections/sky_reflections/roughness_layers`** default `7` → `8` (4.7 migration guide: https://docs.godotengine.org/en/stable/tutorials/migrating/upgrading_to_godot_4.7.html)
 
 ### 4.6 Changes
 - **D3D12 is the default rendering backend on Windows** (was Vulkan)

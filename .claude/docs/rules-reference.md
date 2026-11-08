@@ -50,6 +50,7 @@ each rule's own globs list the case variants (`{AI,Ai,ai}`).
 | `test-standards.md` | `tests/**` · `Assets/Tests/**/*.cs` · `Source/**/Tests/**/*.{h,cpp}` | Test naming, coverage requirements, fixture patterns |
 | `prototype-code.md` | `prototypes/**` | Relaxed standards, README required, hypothesis documented |
 | `shader-code.md` | `assets/shaders/**`, `**/*.gdshader` · `Assets/**/*.{shader,hlsl,cginc,compute,shadergraph}` · `Shaders/**`, `**/*.{usf,ush}` | Naming conventions, performance targets, cross-platform rules |
+| `scene-files.md` | `**/*.tscn`, `**/*.tres` · `**/*.unity`, `**/*.prefab`, `Assets/**/*.asset` · — | Hand-edit limits for editor-written scene and asset files; Unreal `.uasset`/`.umap` are binary, and `settings.json` denies edits to them |
 | `agent-memory.md` | `.claude/agent-memory/**` | The one place an agent may write unasked — and why a temporary absence must never be recorded as a durable fact |
 | `skill-authoring.md` | `.claude/skills/**`, `.claude/agents/**` | A check must be able to report that it did not run — the five obligations for verdicts, defaults, skips, sourcing and derived coverage |
 
@@ -63,6 +64,8 @@ Each engine-facing rule loads on all three engines:
 - **`shader-code.md`** matches shader files by type: `.gdshader`, `.shader`,
   `.hlsl`, `.cginc`, `.compute`, `.shadergraph`, `.usf`, `.ush`, plus `Shaders/**`.
 - **`test-standards.md`** matches `Assets/Tests/**/*.cs` and `Source/**/Tests/**/*.{h,cpp}`.
+- **`scene-files.md`** is the exception: Godot and Unity scene and asset files are text and have
+  rules; Unreal's are binary, so a deny rule blocks edits instead of a rule guiding them.
 
 > **`skill-authoring.md` is the odd one out and deliberately so.** Every other
 > rule here scopes a *game* directory; that one scopes the **framework's own**

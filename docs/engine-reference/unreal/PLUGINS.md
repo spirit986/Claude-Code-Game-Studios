@@ -1,6 +1,6 @@
 # Unreal Engine 5.8 — Optional Plugins & Systems
 
-**Last verified:** 2026-08-16
+**Last verified:** 2026-10-17 (5.8 status flags, Mover, Iris, AI Assistant, MCP Server, Raw Input); 2026-02-13 (rest of file, written against 5.7)
 
 This document indexes **optional plugins and systems** available in Unreal Engine 5.8.
 These are NOT part of the core engine but are commonly used for specific game types.
@@ -14,6 +14,35 @@ These are NOT part of the core engine but are commonly used for specific game ty
 **⚠️ Experimental** - May have breaking changes in future versions
 **📦 Plugin Required** - Must be enabled in `Edit > Plugins`
 
+### Status flags in the UE 5.8 install
+
+Epic's own `.uplugin` flags decide whether the Plugins window shows a plugin as
+Beta or Experimental. Read from a UE 5.8.1 install (`Engine/Plugins/...`) on
+2026-10-17; where a status line below and this table disagree, the table is the
+engine's word.
+
+| Plugin | `.uplugin` | 5.8 flag |
+|--------|-----------|----------|
+| Gameplay Abilities | `Runtime/GameplayAbilities/GameplayAbilities.uplugin` | none (not Beta/Experimental) |
+| CommonUI | `Runtime/CommonUI/CommonUI.uplugin` | none |
+| PCG | `PCG/PCG.uplugin` | none; enabled by default |
+| Gameplay Cameras | `Cameras/GameplayCameras/GameplayCameras.uplugin` | Experimental; enabled by default |
+| Mass Gameplay / Mass Crowd | `Runtime/MassGameplay/MassGameplay.uplugin`, `AI/MassCrowd/MassCrowd.uplugin` | Experimental (MassEntity itself is engine code, `Engine/Source/Runtime/MassEntity`) |
+| Niagara Fluids | `FX/NiagaraFluids/NiagaraFluids.uplugin` | Beta |
+| Water | `Experimental/Water/Water.uplugin` | Experimental |
+| Landmass | `Experimental/Landmass/Landmass.uplugin` | Beta |
+| Chaos Destruction (Geometry Collection) | `Experimental/GeometryCollectionPlugin/GeometryCollectionPlugin.uplugin` | Beta |
+| Chaos Vehicles | `Experimental/ChaosVehiclesPlugin/ChaosVehiclesPlugin.uplugin` | Experimental |
+| Geometry Scripting | `Runtime/GeometryScripting/GeometryScripting.uplugin` | none |
+| Mover / ChaosMover | `Experimental/Mover/Mover.uplugin`, `Experimental/ChaosMover/ChaosMover.uplugin` | Experimental |
+| Iris | `Experimental/Iris/Iris.uplugin` | Beta (the 5.8 release notes call Iris "production-ready for licensees") |
+| Replication Graph | `Runtime/ReplicationGraph/ReplicationGraph.uplugin` | Beta (no deprecation flag) |
+| AI Assistant | `Experimental/AIAssistant/AIAssistant.uplugin` | Experimental |
+| Raw Input | `Experimental/RawInput/RawInput.uplugin` | `"DeprecatedEngineVersion": "5.8"` |
+| Game Input (Windows) | `GameInputWindows/GameInputWindows.uplugin` | Beta |
+| OpenXR | `Runtime/OpenXR/OpenXR.uplugin` | none |
+| Enhanced Input, MetaSound | `EnhancedInput/EnhancedInput.uplugin`, `Runtime/Metasound/Metasound.uplugin` | none; enabled by default |
+
 ---
 
 ## Production-Ready Systems (Detailed Docs Available)
@@ -25,18 +54,18 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **Status:** Production-Ready
 - **Plugin:** `GameplayAbilities` (built-in, enable in Plugins)
 - **Detailed Docs:** [plugins/gameplay-ability-system.md](plugins/gameplay-ability-system.md)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/gameplay-ability-system-for-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/gameplay-ability-system-for-unreal-engine/
 
 ---
 
 ### ✅ CommonUI
 - **Purpose:** Cross-platform UI framework (automatic gamepad/mouse/touch input routing)
 - **When to use:** Multi-platform games (console + PC), input-agnostic UI
-- **Knowledge Gap:** Production-ready in UE5+, major improvements post-cutoff; UE 5.8 unifies CommonUI input with Enhanced Input (no duplicate input assets)
+- **Knowledge Gap:** Production-ready in UE5+, major improvements post-cutoff
 - **Status:** Production-Ready
 - **Plugin:** `CommonUI` (built-in, enable in Plugins)
 - **Detailed Docs:** [plugins/common-ui.md](plugins/common-ui.md)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/commonui-plugin-for-advanced-user-interfaces-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/commonui-plugin-for-advanced-user-interfaces-in-unreal-engine/
 
 ---
 
@@ -44,77 +73,77 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **Purpose:** Modular camera management (camera modes, blending, context-aware cameras)
 - **When to use:** Games needing dynamic camera behavior (3rd person, aiming, vehicles)
 - **Knowledge Gap:** NEW in UE 5.5, completely post-cutoff
-- **Status:** ⚠️ Experimental (UE 5.5-5.8)
+- **Status:** ⚠️ Experimental (UE 5.5-5.8; still flagged Experimental in 5.8)
 - **Plugin:** `GameplayCameras` (built-in, enable in Plugins)
 - **Detailed Docs:** [plugins/gameplay-camera-system.md](plugins/gameplay-camera-system.md)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/gameplay-cameras-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/gameplay-cameras-in-unreal-engine/
 
 ---
 
 ### ✅ PCG (Procedural Content Generation)
 - **Purpose:** Node-based procedural world generation (foliage, props, terrain details)
 - **When to use:** Open worlds, procedural levels, large-scale environment population
-- **Knowledge Gap:** Experimental in UE 5.0-5.6, production-ready in 5.7; UE 5.8 adds manual (non-destructive) editing, complex attributes (arrays/structs/sets/maps), embedded subgraphs, graph parameter editor, and GPU runtime performance parity with landscape grass
+- **Knowledge Gap:** Experimental in UE 5.0-5.6, production-ready in 5.7; 5.8 adds manual editing, complex attributes and embedded subgraphs
 - **Status:** Production-Ready (as of UE 5.7)
 - **Plugin:** `PCG` (built-in, enable in Plugins)
 - **Detailed Docs:** [plugins/pcg.md](plugins/pcg.md)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/procedural-content-generation-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/procedural-content-generation-in-unreal-engine/
 
 ---
 
-## Other Production-Ready Plugins (Brief Overview)
+## Other Plugins (Brief Overview)
 
 ### 🟡 Mass Entity
 - **Purpose:** High-performance ECS for large-scale AI/crowds (10,000+ entities)
 - **When to use:** RTS, city simulators, massive crowds, large-scale AI
-- **Status:** Production-Ready (UE 5.1+); major overhaul in 5.8 — lock-free scheduling, sparse fragments, multi-core `MassCore` module
-- **Plugin:** `MassEntity`, `MassGameplay`, `MassCrowd`
-- **Official:** https://docs.unrealengine.com/5.8/en-US/mass-entity-in-unreal-engine/
+- **Status:** `MassGameplay` and `MassCrowd` are flagged Experimental in 5.8. 5.8 overhauled Mass: Mass Signals moved into the core engine, entities can be created off the game thread, and a new MassCore module separates the core entity system from MassGameplay
+- **Plugin:** `MassGameplay`, `MassCrowd` (MassEntity is engine code in 5.8, not a plugin)
+- **Official:** https://docs.unrealengine.com/5.7/en-US/mass-entity-in-unreal-engine/
 
 ---
 
 ### 🟡 Niagara Fluids
 - **Purpose:** GPU fluid simulation (smoke, fire, liquids)
 - **When to use:** Realistic fire/smoke effects, water simulation
-- **Status:** Experimental → Production-Ready (UE 5.4+)
+- **Status:** Beta (5.8 flag)
 - **Plugin:** `NiagaraFluids` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/niagara-fluids-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/niagara-fluids-in-unreal-engine/
 
 ---
 
 ### 🟡 Water Plugin
 - **Purpose:** Ocean, river, lake rendering with buoyancy
 - **When to use:** Games with water bodies, boats, swimming
-- **Status:** Production-Ready (UE 5.0+)
+- **Status:** Experimental (5.8 flag)
 - **Plugin:** `Water` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/water-system-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/water-system-in-unreal-engine/
 
 ---
 
 ### 🟡 Landmass Plugin
 - **Purpose:** Terrain sculpting and landscape editing
 - **When to use:** Large-scale terrain modification, procedural landscapes
-- **Status:** Production-Ready
+- **Status:** Beta (5.8 flag)
 - **Plugin:** `Landmass` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/landmass-plugin-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/landmass-plugin-in-unreal-engine/
 
 ---
 
 ### 🟡 Chaos Destruction
 - **Purpose:** Real-time fracture and destruction
 - **When to use:** Destructible environments (walls, buildings, objects)
-- **Status:** Production-Ready (UE 5.0+)
-- **Plugin:** `ChaosDestruction` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/destruction-in-unreal-engine/
+- **Status:** Beta (5.8 flag on `GeometryCollectionPlugin`)
+- **Plugin:** `GeometryCollectionPlugin` (built-in)
+- **Official:** https://docs.unrealengine.com/5.7/en-US/destruction-in-unreal-engine/
 
 ---
 
 ### 🟡 Chaos Vehicle
 - **Purpose:** Advanced vehicle physics (wheeled vehicles, suspension)
 - **When to use:** Racing games, vehicle-heavy gameplay
-- **Status:** Production-Ready (replaces PhysX Vehicles)
-- **Plugin:** `ChaosVehicles` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/chaos-vehicles-overview-in-unreal-engine/
+- **Status:** Experimental (5.8 flag; replaces PhysX Vehicles)
+- **Plugin:** `ChaosVehiclesPlugin` (built-in)
+- **Official:** https://docs.unrealengine.com/5.7/en-US/chaos-vehicles-overview-in-unreal-engine/
 
 ---
 
@@ -123,25 +152,7 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **When to use:** Dynamic mesh creation, procedural modeling
 - **Status:** Production-Ready (UE 5.1+)
 - **Plugin:** `GeometryScripting` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/geometry-scripting-in-unreal-engine/
-
----
-
-### 🟡 Mutable (Character Customization)
-- **Purpose:** Runtime character/object customization (mesh, texture, morph variation)
-- **When to use:** Character creators, equipment visualization, NPC variety
-- **Status:** Production-Ready (UE 5.8) — was Experimental since UE 5.2; 5.8 adds dataless customizable objects and skeletal mesh support
-- **Plugin:** `Mutable` (built-in, enable in Plugins)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/mutable-in-unreal-engine/
-
----
-
-### 🟡 Iris Replication
-- **Purpose:** Next-generation network replication system (scalability, cleaner protocol handling)
-- **When to use:** New multiplayer projects; large player/actor counts
-- **Status:** Production-Ready (UE 5.8) — was Experimental; improved protocol mismatch handling in 5.8
-- **Plugin:** `Iris` (built-in; opt-in via project settings)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/iris-replication-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/geometry-scripting-in-unreal-engine/
 
 ---
 
@@ -150,47 +161,31 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **When to use:** UI animations, procedural motion, keyframed sequences
 - **Status:** Experimental → Production-Ready (UE 5.4+)
 - **Plugin:** `MotionDesign` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/motion-design-mode-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/motion-design-mode-in-unreal-engine/
 
 ---
 
 ## Experimental Plugins (Use with Caution)
 
-### ⚠️ Mesh Terrain (UE 5.8+)
-- **Purpose:** Next-generation mesh-based terrain — caves, overhangs, overlapping geometry beyond heightfield limits; built on Nanite + virtual textures
-- **When to use:** Terrain-heavy projects that need non-heightfield features — evaluate only, not production-ready
-- **Status:** Experimental (new in UE 5.8)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/mesh-terrain-in-unreal-engine/
-
----
-
-### ⚠️ MetaHuman Crowd / MetaHuman Collections (UE 5.8+)
-- **Purpose:** Crowds of MetaHumans — hundreds on mobile, thousands on high-end — orchestrated via Mass, rendered with Nanite
-- **When to use:** Crowd scenes with realistic characters
-- **Status:** Experimental (new in UE 5.8)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/metahumans-in-unreal-engine/
-
----
-
-### ⚠️ Procedural Vegetation Editor (UE 5.8+)
-- **Purpose:** In-engine vegetation creation with growth, grafting, and trimming
-- **Status:** Experimental (new in UE 5.8)
-- **Plugin:** Part of PCG toolset
+### ⚠️ AI Assistant (UE 5.7+)
+- **Purpose:** In-editor AI guidance and help
+- **Status:** Experimental
+- **Plugin:** `AIAssistant` (Experimental, off by default in 5.8)
+- **Official:** Announced in UE 5.7 release
 
 ---
 
 ### ⚠️ MCP Server (UE 5.8+)
-- **Purpose:** Model Context Protocol plugin enabling external AI tool integration with the editor
+- **Purpose:** Lets agentic AI systems connect to the Unreal Editor to understand the engine and project and help build assets or systems
 - **Status:** Experimental
-- **Plugin:** Enable in UE 5.8 settings
+- **Official:** UE 5.8 release notes, *MCP Server (Experimental)*
 
 ---
 
-### ⚠️ AI Assistant (UE 5.7+)
-- **Purpose:** In-editor AI guidance and help
-- **Status:** Experimental
-- **Plugin:** Enable in UE 5.7+ settings
-- **Official:** Announced in UE 5.7 release
+### ⚠️ Mover / ChaosMover
+- **Purpose:** Character and object movement framework with rollback and prediction
+- **Status:** Experimental (5.8 flag). 5.8 continues "the architectural work toward moving Mover out of Experimental status"
+- **5.8 change:** PhysicsMover / NetworkPhysicsLiaison code was removed from the Mover plugin; use `ChaosMover`
 
 ---
 
@@ -199,7 +194,7 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **When to use:** VR/AR games
 - **Status:** Production-Ready for VR, Experimental for AR
 - **Plugin:** `OpenXR` (built-in)
-- **Official:** https://docs.unrealengine.com/5.8/en-US/openxr-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/openxr-in-unreal-engine/
 
 ---
 
@@ -208,7 +203,7 @@ These are NOT part of the core engine but are commonly used for specific game ty
 - **When to use:** Multiplayer games with online features
 - **Status:** Production-Ready
 - **Plugin:** `OnlineSubsystem`, `OnlineSubsystemEOS`, `OnlineSubsystemSteam`
-- **Official:** https://docs.unrealengine.com/5.8/en-US/online-subsystem-in-unreal-engine/
+- **Official:** https://docs.unrealengine.com/5.7/en-US/online-subsystem-in-unreal-engine/
 
 ---
 
@@ -221,8 +216,14 @@ These are NOT part of the core engine but are commonly used for specific game ty
 ---
 
 ### ❌ Old Replication Graph
-- **Deprecated:** Replaced by Iris (production-ready in UE 5.8)
-- **Status:** Use Iris for modern networking
+- **Deprecated:** Replaced by Iris (UE 5.1+)
+- **Status:** Use Iris for modern networking. Note: in 5.8 the `ReplicationGraph` plugin carries a Beta flag and no deprecation flag, so this is guidance, not an engine deprecation
+
+---
+
+### ❌ Raw Input
+- **Deprecated:** In UE 5.8 (`"DeprecatedEngineVersion": "5.8"`)
+- **Status:** Use the Game Input for Windows plugin (`GameInputWindows`, Beta)
 
 ---
 
@@ -250,13 +251,10 @@ For plugins NOT listed above, use the following approach when users ask:
 **I need vehicles** → **Chaos Vehicles**
 **I need water/oceans** → **Water Plugin**
 **I need VR/AR** → **OpenXR**
-**I need character customization** → **Mutable**
-**I need scalable multiplayer replication** → **Iris**
-**I need realistic crowds** → **Mass Entity + MetaHuman Crowd (Experimental)**
-**I need caves/overhangs in terrain** → **Mesh Terrain (Experimental — evaluate only)**
 
 ---
 
-**Last Updated:** 2026-08-16
+**Last Updated:** 2026-10-17
 **Engine Version:** Unreal Engine 5.8
+**Sources (5.8):** UE 5.8 release notes https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8 (Mass, Iris, Mover, MCP Server, Raw Input upgrade note); `.uplugin` files in a UE 5.8.1 install, paths in the status table above
 **LLM Knowledge Cutoff:** May 2025

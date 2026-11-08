@@ -1,8 +1,18 @@
 # Unreal Engine 5.8 — PCG (Procedural Content Generation)
 
-**Last verified:** 2026-08-16
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
 **Status:** Production-Ready (as of UE 5.7)
 **Plugin:** `PCG` (built-in, enable in Plugins)
+
+> **UE 5.8 changes:** Non-destructive manual editing of PCG data (selection,
+> exclusion, modification, restore; a Data Overrides window), complex metadata
+> attributes (arrays, structs, sets, maps), embedded subgraphs stored inside a
+> graph, a graph parameters hierarchy editor, and GPU runtime scatter "within
+> the same performance range as the landscape GPU grass system". New nodes
+> include metadata array operations, Align Points, Apply Spline to Component
+> and Teleport Actors and Components. `UPCGComponent` exposes a
+> `SourceDataContainer` through the execution source interface. Source: UE 5.8
+> release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
 
 ---
 
@@ -24,17 +34,6 @@ foliage, rocks, props, buildings, and other environmental detail.
 - One-off manual placement (use editor tools)
 
 **⚠️ Note:** PCG was experimental in UE 5.0-5.6, became production-ready in UE 5.7.
-
----
-
-## What's New in UE 5.8
-
-- **Manual editing**: non-destructive editing of PCG output via selection and exclusion — hand-tweak generated content without breaking regeneration
-- **Complex attributes**: arrays, structures, sets, and maps supported as metadata
-- **Embedded subgraphs**: custom subgraphs can be stored inside PCG graphs
-- **Graph Parameters Editor**: parameter categorization and hierarchy tools
-- **GPU runtime performance**: now within the same performance range as the landscape GPU grass system
-- **Procedural Vegetation Editor (Experimental)**: in-engine vegetation creation with growth, grafting, and trimming
 
 ---
 
@@ -362,6 +361,6 @@ Street Light Spawner
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/procedural-content-generation-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/pcg-quick-start-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/procedural-content-generation-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/pcg-quick-start-in-unreal-engine/
 - UE 5.7 Release Notes (PCG Production-Ready announcement)

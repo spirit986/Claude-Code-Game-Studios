@@ -9,6 +9,8 @@ model: sonnet
 
 !`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation`
 
+# Code Review
+
 
 
 Every `AskUserQuestion` call follows `.claude/docs/automation-modes.md`
@@ -33,11 +35,10 @@ not a filled-in report.** Check first, and stop if the check fails.
 
 **A verdict of `NOT ASSESSED` is a success.** It is the correct, useful answer to
 "what does the data say?" when there is no data. The failure mode this prevents is
-specific and has been observed in practice: report templates whose verdict
-enum had no "could not run" state produced **false clean passes** — an asset audit
-returning COMPLIANT on a project with no assets and no standards, and a
-performance profile reporting ">99% headroom against a 16.67ms budget" with zero
-profiler data and no budget ever set.
+specific: a report whose verdict enum has no "could not run" state produces
+**false clean passes** — an asset audit returning COMPLIANT on a project with no
+assets and no standards, or a performance profile reporting ">99% headroom against
+a 16.67ms budget" with zero profiler data and no budget ever set.
 
 **Absence of evidence is never evidence of absence.** A scan that finds no
 matches because there are no files to scan has not verified anything. Say which of
@@ -159,12 +160,10 @@ Spawn all applicable specialists simultaneously via `Agent` — do not wait for 
 > promoted to a defect on the strength of confident phrasing.
 >
 > **Why this is mandatory.** Agents are reliable when deriving and unreliable when
-> diagnosing existing code. In practice, three separate agents
-> produced three different **wrong** claims about the same six-line function,
-> every one fluent enough to pass a skim — including a spawned specialist here
-> alleging a float-precision bug that enumerating the inputs disproves. Without
-> this step the parent review is a laundering channel: a guess enters as a
-> specialist finding and leaves as a reviewed defect.
+> diagnosing existing code: a **wrong** claim about a short function can be fluent
+> enough to pass a skim, and a claimed bug can fall apart once you enumerate the
+> inputs. Without this step the parent review is a laundering channel: a guess
+> enters as a specialist finding and leaves as a reviewed defect.
 
 ### Engine Specialists
 

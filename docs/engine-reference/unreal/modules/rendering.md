@@ -1,7 +1,20 @@
 # Unreal Engine 5.8 — Rendering Module Reference
 
-**Last verified:** 2026-08-16
-**Knowledge Gap:** MegaLights (production-ready in 5.8), production-ready Substrate, Lumen Lite (new in 5.8), Mesh Terrain (experimental in 5.8)
+**Last verified:** 2026-10-18 (MegaLights tooltip against the 5.8 notes and source); 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Knowledge Gap:** UE 5.8 has production-ready MegaLights, production-ready Substrate (5.7), Lumen Lite, and Lumen improvements
+
+> **UE 5.8 changes:** MegaLights is production-ready (enable it in Project
+> Settings > Engine > Rendering > Direct Lighting > MegaLights,
+> `r.MegaLights.EnableForProject`, default 0). Lumen Lite (Beta) is a
+> medium-quality GI setting, about twice as fast as Lumen high quality and the
+> default for current-generation handheld consoles. Mobile: multi-pass deferred
+> is the default path (forward is opt-in), with SSAO, SSR, deferred decals and
+> contact shadows. Lumen applies height fog to reflection ray hits by default
+> (`r.Lumen.HeightFog 1`). Substrate has been on for new projects since 5.7
+> (`r.Substrate`); Substrate NPR (toon) shading and Fog Screen Space Scattering
+> are Experimental. Sources: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8 ;
+> `Engine/Source/Runtime/Engine/Classes/Engine/RendererSettings.h` and
+> `Engine/Source/Runtime/RenderCore/Private/RenderUtils.cpp` (5.8.1 install).
 
 ---
 
@@ -9,23 +22,9 @@
 
 UE 5.8 rendering stack:
 - **Lumen**: Real-time global illumination (default)
-- **Lumen Lite**: Medium-quality GI via Irradiance Fields — 2x faster than Lumen high quality (Beta in 5.8)
 - **Nanite**: Virtualized geometry for millions of triangles
-- **MegaLights**: Hundreds of dynamic shadow-casting area lights (production-ready in 5.8)
-- **Substrate**: Production-ready modular material system (since 5.7)
-
----
-
-## What's New in UE 5.8
-
-- **MegaLights production-ready**: reduced noise, transmission support, froxel translucency, debugging tools; 60fps target on PS5/XSX
-- **Lumen Lite (Beta)**: Irradiance Fields with Probe Occlusion; use when full Lumen exceeds the frame budget
-- **Substrate NPR shading (Experimental)**: toon/stylized shading within Substrate
-- **X-Rite AXF material import** via Substrate
-- **Mesh Terrain (Experimental)**: mesh-based terrain (caves, overhangs) on Nanite + virtual textures — not yet production-ready
-- **FSSS (Experimental)**: fog screen-space scattering approximation for volumetrics
-- **World Partition Insights**: per-cell streaming analysis and debugging for World Partition worlds
-- **Mobile**: multi-pass deferred rendering is now the mobile default (forward opt-in)
+- **MegaLights**: Many shadow-casting dynamic lights (NEW in 5.5+, production-ready in 5.8)
+- **Substrate**: Production-ready modular material system (NEW in 5.7)
 
 ---
 
@@ -79,15 +78,39 @@ MeshComp->SetStaticMesh(NaniteMesh); // Automatically uses Nanite if enabled
 
 ---
 
-## MegaLights (UE 5.5+, Production-Ready in 5.8)
+## MegaLights (UE 5.5+, production-ready in 5.8)
 
 ### Enable MegaLights
 
 ```cpp
-// Project Settings > Engine > Rendering > MegaLights = Enabled
-// Hundreds of dynamic shadow-casting area lights with minimal noise
-// 5.8 adds transmission support, froxel translucency, and debugging tools
+// Project Settings > Engine > Rendering > Direct Lighting > MegaLights
+//   (r.MegaLights.EnableForProject, default 0; a Post Process Volume can
+//   override it, and it can be disabled per light)
+// Many shadow-casting lights at a consistent, low GPU cost
 ```
+
+### The editor tooltip is older than the 5.8 release notes
+
+In a 5.8.1 install, this setting's tooltip (`RendererSettings.h`) and the
+`r.MegaLights.EnableForProject` help text (`MegaLights.cpp`) still end
+"Experimental feature." and say MegaLights "requires Hardware Ray Tracing, and
+does not support Directional Lights". Follow the release notes and the engine
+code instead:
+
+- **Status:** "Megalights is now entering Production Ready status with Unreal
+  Engine 5.8" (5.8 release notes, Rendering > Megalights).
+- **Ray tracing:** the renderer accepts hardware or software ray tracing support
+  (`HasRequiredTracingData` in `MegaLights.cpp`). Shadow rays use hardware ray
+  tracing while `r.MegaLights.HardwareRayTracing` is 1, the default. Shadows
+  come from ray tracing (the default) or Virtual Shadow Maps:
+  `r.MegaLights.DefaultShadowMethod` 0 or 1.
+- **Directional lights:** supported behind `r.MegaLights.DirectionalLights`,
+  default 0 (off). The 5.7 release notes list Directional Light support.
+
+Sources, read 2026-10-18: the 5.8 and 5.7 release notes (§ Sources); in a UE
+5.8.1 install (CL 56057345), `Engine/Source/Runtime/Engine/Classes/Engine/RendererSettings.h`,
+`Engine/Source/Runtime/Renderer/Private/MegaLights/MegaLights.cpp` and
+`MegaLightsRayTracing.cpp`.
 
 ### MegaLights Usage
 
@@ -97,8 +120,7 @@ UPointLightComponent* Light = CreateDefaultSubobject<UPointLightComponent>(TEXT(
 Light->SetIntensity(5000.0f);
 Light->SetAttenuationRadius(500.0f);
 
-// MegaLights handles hundreds of shadow-casting lights at 60fps on current-gen consoles —
-// orders of magnitude more than the ~100-200 limit of the traditional pipeline
+// MegaLights handles many of these at a consistent GPU cost
 ```
 
 ---
@@ -108,8 +130,9 @@ Light->SetAttenuationRadius(500.0f);
 ### Enable Substrate
 
 ```cpp
-// Project Settings > Engine > Substrate > Enable Substrate
-// Restart editor
+// On by default for new projects created in 5.7+.
+// Existing project: Project Settings > Engine > Rendering > Substrate >
+//   Substrate materials (r.Substrate), then restart the editor
 ```
 
 ### Substrate Material Nodes
@@ -308,6 +331,8 @@ Console commands:
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/lumen-global-illumination-and-reflections-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/nanite-virtualized-geometry-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/substrate-materials-in-unreal-engine/
+- UE 5.8 release notes: https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
+- UE 5.7 release notes: https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-7-release-notes?application_version=5.7
+- https://docs.unrealengine.com/5.7/en-US/lumen-global-illumination-and-reflections-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/nanite-virtualized-geometry-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/substrate-materials-in-unreal-engine/

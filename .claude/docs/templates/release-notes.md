@@ -1,103 +1,37 @@
-# Release Notes: [Game Title] v[Version]
+# Patch [Version] — [Title]
+*[Date]*
 
-*Released: [Date]*
+## Highlights
+[1-2 sentence summary of the most exciting changes]
 
----
-
-## Headline
-
-> [One compelling sentence summarizing the most exciting part of this release.
-> This is what appears in store update notifications and social media.]
-
----
-
-## What's New
-
-### [Major Feature 1 Name]
-[2-4 sentences describing the feature. Focus on what players can DO, not
-how it works internally. Include a screenshot or GIF reference if applicable.]
-
-### [Major Feature 2 Name]
-[Description]
-
----
+## New Content
+### [Feature Name]
+[2-3 sentences describing the feature and why players should be excited]
 
 ## Gameplay Changes
+### Balance
+| Change | Before | After | Reason |
+| ---- | ---- | ---- | ---- |
+| [Item/ability] | [old value] | [new value] | [brief rationale] |
 
-### Balance Adjustments
-
-| Target | Change | Before | After | Context |
-| ---- | ---- | ---- | ---- | ---- |
-| [Weapon/Ability/Item] | [What changed] | [Old value] | [New value] | [Why — 1 sentence] |
-| | | | | |
-
-### Mechanic Changes
-- **[Change Name]**: [What changed and how it affects gameplay. Be specific
-  about what players will experience differently.]
-
----
+### Mechanics
+- **[Change]**: [explanation of what changed and why]
 
 ## Quality of Life
-
-- [Improvement 1 — describe the player benefit, not the technical change]
-- [Improvement 2]
-- [Improvement 3]
-
----
+- [Improvement with context]
 
 ## Bug Fixes
+### Combat
+- Fixed [description of what players experienced]
 
-### Critical Fixes
-- Fixed [describe what players experienced, e.g., "a crash when loading
-  saved games from version 1.0"]
-
-### Gameplay Fixes
-- Fixed [describe the incorrect behavior and the correct behavior now]
-
-### UI Fixes
+### UI
 - Fixed [description]
 
-### Audio Fixes
+### Networking
 - Fixed [description]
 
-### Platform-Specific Fixes
-- **[Platform]**: Fixed [description]
-
----
-
-## Performance Improvements
-
-- [Improvement players will notice, e.g., "Reduced load times by approximately
-  30% on all platforms"]
-- [Improvement]
-
----
+## Performance
+- [Improvement players will notice]
 
 ## Known Issues
-
-We are aware of the following issues and are working on fixes for a future update:
-
-- **[Issue]**: [Brief description and workaround if available]
-- **[Issue]**: [Description]
-
----
-
-## Coming Next
-
-[Optional — tease upcoming content to build anticipation. Keep it vague enough
-to not create binding commitments.]
-
-> [1-2 sentences about what the team is working on next]
-
----
-
-## Thank You
-
-[Brief message thanking the community. Reference specific community feedback
-that influenced changes in this release if applicable.]
-
----
-
-*For the full changelog with technical details, see the [developer changelog](link).*
-*Report bugs: [link to bug report channel/form]*
-*Join the community: [link to Discord/forum]*
+- [Issue and workaround if available]

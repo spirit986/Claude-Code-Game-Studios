@@ -1,17 +1,17 @@
-# Interaction Pattern Library: [Game Title]
+# Interaction Pattern Library
 
 > Authoring guidance: .claude/docs/templates/guidance/interaction-pattern-library-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Draft | Stable | Under Revision
-> **Author**: [ux-designer]
-> **Last Updated**: [Date]
+> **Status**: [In Design | Stable | Under Revision]
+> **Author**: [user + ux-designer]
+> **Last Updated**: [today's date]
 > **Version**: [1.0]
-> **Engine**: [Godot 4.6 / Unity 6 / Unreal Engine 5]
+> **Engine**: [Godot 4.7 / Unity 6 / Unreal Engine 5]
 > **UI Framework**: [Godot Control nodes / Unity UI Toolkit / Unreal UMG]
 > **Related Documents**:
 > - `design/art/art-bible.md` — visual standards (colors, typography, iconography)
 > - `design/accessibility-requirements.md` — accessibility commitments per feature
-> - `docs/ux/ux-spec-[screen].md` — individual screen specs that reference patterns
+> - `design/ux/[screen].md` — individual screen specs that reference patterns
 >
 > **Template**: Interaction Pattern Library
 
@@ -35,7 +35,11 @@
 
 ---
 
-## How to Use This Library
+## Overview
+
+[To be designed]
+
+### How to Use This Library
 
 **If you are designing a screen**: Browse the Pattern Catalog Index below before
 inventing new interactions. When a standard pattern fits, reference it by name
@@ -59,7 +63,11 @@ update this document before or simultaneously with any implementation change.
 
 ---
 
-## Pattern Catalog Index
+## Pattern Catalog
+
+[To be designed]
+
+### Pattern Catalog Index
 
 > Add a row here every time a new pattern is added to this document.
 > The "Used In" column is the usages audit trail — update it when new screens
@@ -108,7 +116,11 @@ update this document before or simultaneously with any implementation change.
 
 ---
 
-## Standard Control Patterns
+## Patterns
+
+[Individual pattern entries added here as they are defined]
+
+### Standard Control Patterns
 
 > Full reference specifications for every pattern in this section (state tables
 > with timing/audio values, accessibility requirements, implementation notes)
@@ -431,7 +443,7 @@ update this document before or simultaneously with any implementation change.
 
 ---
 
-## Game-Specific UI Patterns
+### Game-Specific UI Patterns
 
 > Full reference specifications for every pattern in this section are in
 > `.claude/docs/templates/guidance/interaction-pattern-library-guide-game-specific.md` — load only the
@@ -551,7 +563,7 @@ update this document before or simultaneously with any implementation change.
 
 ---
 
-## Navigation Patterns
+### Navigation Patterns
 
 > Full reference specifications for this section and the next are in
 > `.claude/docs/templates/guidance/interaction-pattern-library-guide-navigation-feedback.md` — load
@@ -608,7 +620,7 @@ These three patterns define how screens enter and exit the navigation stack.
 
 ---
 
-## Feedback and Loading Patterns
+### Feedback and Loading Patterns
 
 ---
 
@@ -653,6 +665,7 @@ These three patterns define how screens enter and exit the navigation stack.
 **Principle**: Error messages are never the player's fault. They tell the player what happened and what to do next.
 
 ---
+
 ## Animation Standards
 
 > These timing values apply to ALL patterns in this library. When a pattern says
@@ -721,11 +734,19 @@ These three patterns define how screens enter and exit the navigation stack.
 
 ---
 
+## Gaps & Patterns Needed
+
+[To be designed]
+
+---
+
 ## Open Questions
+
+[To be designed]
 
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
-| [Does the engine's accessibility node system support screen reader announcements for toast notifications without requiring focus? Verify against engine-reference/godot/ for Godot 4.6.] | [ux-designer] | [Before first menu implementation] | [Unresolved] |
+| [Does the engine's accessibility node system support screen reader announcements for toast notifications without requiring focus? Verify against engine-reference/godot/ for Godot 4.7.] | [ux-designer] | [Before first menu implementation] | [Unresolved] |
 | [What is the platform-correct confirm/cancel button mapping for Nintendo Switch release? Nintendo first-party convention differs from Xbox/PlayStation.] | [producer] | [Before platform certification submission] | [Unresolved] |
 | [Should damage numbers be pooled as Label3D nodes or rendered in a SubViewport? Verify performance budget in coordination with technical-director.] | [lead-programmer, ux-designer] | [Before combat HUD implementation] | [Unresolved] |
 | [What is the maximum number of simultaneous toast notifications before the queue becomes visually overwhelming? Needs playtesting.] | [ux-designer] | [First playtesting session] | [Unresolved] |

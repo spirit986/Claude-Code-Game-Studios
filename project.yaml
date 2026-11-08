@@ -4,8 +4,8 @@
 schema_version: 1
 
 framework:
-  version: 1.1.2
-  last_upgraded: 2026-09-25
+  version: 1.2.0
+  last_upgraded: 2026-10-19
 
 # NOTE: this template ships with no `modes:` block, and the six knobs below must
 # never be added to one.
@@ -17,9 +17,9 @@ framework:
 # What must stay absent is the six knobs `modes.rigor` FRONTS:
 # `modes.review_mode`, `modes.workflow`, `docs.density`, `qa.level`,
 # `modes.story_granularity` and `team.size`. Seeding any of them in this file
-# pins that value and shadows the rigor expansion, so `/start` asking "what are
-# you building?" would stop changing anything. `/start` Phase 3c documents the
-# same rule for the file it writes.
+# pins that value and shadows the rigor expansion, so the rigor `/start` infers
+# and saves would stop changing anything. `/start` states the same rule for the
+# settings it writes.
 #
 # Per-developer preferences belong in `project.local.yaml` (gitignored), not
 # here. `/settings --local <key>=<value>` writes there; `/settings <key>=<value>`

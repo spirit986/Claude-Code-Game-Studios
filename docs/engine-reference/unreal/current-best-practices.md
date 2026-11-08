@@ -1,6 +1,6 @@
 # Unreal Engine 5.8 — Current Best Practices
 
-**Last verified:** 2026-08-16
+**Last verified:** 2026-10-17 (5.8 pin: project setup, C++ standard, Blueprint Nativization, MegaLights, Substrate, Object Pooling sample, logging); 2026-02-13 (rest of file, written against 5.7)
 
 Modern UE5 patterns that may not be in the LLM's training data.
 These are production-ready recommendations as of UE 5.8.
@@ -10,17 +10,15 @@ These are production-ready recommendations as of UE 5.8.
 ## Project Setup
 
 ### Use UE 5.8 for New Projects
-- Latest features: production-ready MegaLights, Substrate, PCG, Iris replication, Mutable
-- 5.8 is the final planned UE5 release — its production-ready systems are the stable baseline before UE6
-- C++ projects require Visual Studio 2026 (MSVC v145) and `BuildSettingsVersion.V7`
+- Latest release: 5.8 (latest hotfix 5.8.3, September 2026)
+- MegaLights and Iris are production-ready in 5.8 (per the release notes; the Iris plugin still carries a Beta flag); Substrate and PCG have been since 5.7
+- Needs a C++20 toolchain: Visual Studio 2022 17.14 or newer on Windows (2026 recommended), see `breaking-changes.md` → Platform-Specific
 
 ### Choose the Right Rendering Features
 - **Lumen**: Real-time global illumination (RECOMMENDED for most projects)
-- **Lumen Lite (Beta, 5.8)**: Medium-quality GI via Irradiance Fields — 2x faster than Lumen high quality; use when targeting 60fps on console with GI
 - **Nanite**: Virtualized geometry for high-poly meshes (RECOMMENDED for detailed environments)
-- **MegaLights**: Production-ready in 5.8 — hundreds of dynamic shadow-casting area lights at 60fps on current-gen consoles (RECOMMENDED for complex lighting)
-- **Substrate**: Modular material system (RECOMMENDED for new projects); NPR/toon shading is Experimental in 5.8
-- **Mesh Terrain (Experimental, 5.8)**: Mesh-based terrain for caves/overhangs/overlapping geometry — evaluate for terrain-heavy projects, but it is not yet production-ready
+- **MegaLights**: Many shadow-casting dynamic lights at a consistent GPU cost (production-ready in 5.8; RECOMMENDED for complex lighting)
+- **Substrate**: Modular material system (RECOMMENDED; enabled automatically for new projects since 5.7)
 
 ---
 
@@ -45,12 +43,12 @@ The automation arguments are the same on every platform:
 Only one `Automation` run request is allowed per `-ExecCmds`, and `-testexit=` is
 legacy.
 
-The Windows column was run on UE 5.7 (not re-checked on 5.8). The Linux and macOS columns come from
+The Windows column was run on UE 5.7. The Linux and macOS columns come from
 Epic's documentation and forum answers by Epic staff (sources below); Epic never
 prints the full Linux test line, so it is assembled from the executable and the
 platform-neutral arguments.
 
-Sources (Epic's 5.7 docs; not re-checked on 5.8):
+Sources:
 - Build.sh on Linux and Mac, platform names — *Create an Installed Build*: https://dev.epicgames.com/documentation/en-us/unreal-engine/create-an-installed-build-of-unreal-engine?application_version=5.7
 - `RunUBT.sh <Target> [Linux|Mac] Development` — *Unreal Insights*: https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-insights-in-unreal-engine?application_version=5.7
 - `Engine/Binaries/Linux/UnrealEditor`, `Engine/Binaries/Mac/UnrealEditor.app` — *Onboarding Licensees*: https://dev.epicgames.com/documentation/en-us/unreal-engine/onboarding-licensees-in-unreal-engine?application_version=5.7 and *Linux Development Quickstart*: https://dev.epicgames.com/documentation/en-us/unreal-engine/linux-development-quickstart-for-unreal-engine?application_version=5.7
@@ -62,7 +60,11 @@ Sources (Epic's 5.7 docs; not re-checked on 5.8):
 
 ## C++ Coding
 
-### Use Modern C++ Features (C++20, MSVC v145 in UE 5.8)
+### Use Modern C++ Features (C++20, the minimum in UE 5.8)
+
+UE 5.8 makes C++20 the floor: `CppStandardVersion.Cpp14` and `Cpp17` are marked
+obsolete ("no longer allowed, code will not compile with this version") and
+`Minimum = Cpp20`. C++23 is selectable but marked experimental.
 
 ```cpp
 // ✅ Use TObjectPtr<T> (UE5 type-safe pointers)
@@ -119,8 +121,9 @@ void OnDeath();
 // ✅ Use Event Tick sparingly (expensive)
 // Prefer timers or events
 
-// ❌ Blueprint Nativization was REMOVED in UE 5.0 — do not suggest it
-// Move hot Blueprint logic to C++ manually instead
+// ✅ Move hot Blueprint logic to C++ by hand
+// (Blueprint Nativization is gone: UE 5.8's packaging settings keep only an
+// unused EProjectPackagingBlueprintNativizationMethod enum, no setting)
 
 // ✅ Cache frequently accessed components
 // Don't call GetComponent every tick
@@ -144,36 +147,28 @@ void OnDeath();
 // Automatically LODs millions of triangles (RECOMMENDED for detailed meshes)
 ```
 
-### Use MegaLights for Complex Lighting (Production-Ready in 5.8)
+### Use MegaLights for Complex Lighting (UE 5.5+, production-ready in 5.8)
 
 ```cpp
-// Enable: Project Settings > Engine > Rendering > MegaLights = Enabled
-// Hundreds of dynamic shadow-casting area lights, 60fps target on PS5/XSX
-// 5.8 adds transmission support, froxel translucency, and debugging tools
+// Enable: Project Settings > Engine > Rendering > Direct Lighting > MegaLights
+//   (r.MegaLights.EnableForProject, default 0; a Post Process Volume can
+//   override it, and it can be disabled per light)
+// Many shadow-casting lights at a consistent, low GPU cost
 ```
 
-### Consider Lumen Lite for a Tight GI Budget (Beta in 5.8)
+### Use Substrate Materials (Production-Ready in 5.7)
 
 ```cpp
-// Medium-quality GI using Irradiance Fields with Probe Occlusion
-// ~2x faster than Lumen high quality — targets 60fps on PS5
-// Use when full Lumen doesn't fit the frame budget but you want dynamic GI
-```
-
-### Use Substrate Materials (Production-Ready since 5.7)
-
-```cpp
-// Enable: Project Settings > Engine > Substrate > Enable Substrate
+// New projects created in 5.7+ have Substrate enabled automatically.
+// Existing projects keep their setting; to enable it:
+//   Project Settings > Engine > Rendering > Substrate > Substrate materials
+//   (r.Substrate, read-only at runtime, editor restart required)
 // Modular, physically accurate materials (RECOMMENDED for new projects)
 ```
 
 ---
 
 ## Enhanced Input System
-
-> **UE 5.8:** Enhanced Input and CommonUI input are unified — one set of input
-> assets drives both gameplay and UI. Do not create duplicate input actions for
-> CommonUI; route UI input through the unified system.
 
 ### Setup Enhanced Input
 
@@ -289,15 +284,6 @@ UAudioComponent* AudioComp = UGameplayStatics::SpawnSound2D(
 
 ## Replication (Multiplayer)
 
-### Consider Iris for New Multiplayer Projects (Production-Ready in 5.8)
-
-```cpp
-// Iris is UE's next-gen replication system — production-ready in 5.8
-// Better scalability, improved protocol mismatch handling
-// New multiplayer projects should evaluate Iris; existing projects can stay
-// on the legacy path (still supported) — see ue-replication-specialist
-```
-
 ### Server-Authoritative Pattern
 
 ```cpp
@@ -328,29 +314,32 @@ void AMyCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 ```cpp
 // ✅ Reuse objects instead of Spawn/Destroy
-//
-// ⚠ INCONSISTENT WITH THIS FILE'S OWN RULE (flagged 2026-08-10).
-// The GC section above states that an unmarked raw UObject pointer is
-// "Dangerous! May be garbage collected" and requires UPROPERTY() +
-// TObjectPtr<T>. This pooling example then holds raw AActor* in a bare TArray,
-// which is exactly the shape that section forbids. FOLLOW THE RULE, NOT THIS
-// SNIPPET: declare the pool UPROPERTY() TArray<TObjectPtr<AActor>>.
-//
-// Left visible rather than silently rewritten: the corrected form has not been
-// verified against Epic's docs for 5.7 or 5.8, and this directory is the offline
-// substitute for them -- editing a code sample here from memory is the failure
-// mode the whole reference exists to prevent. Re-verify, then fix both together.
-TArray<AActor*> ProjectilePool;
+// The pool is a member of a UCLASS. UPROPERTY() makes the container a GC
+// reference, so inactive pooled actors are not collected (same rule as the
+// GC section above).
+UPROPERTY()
+TArray<TObjectPtr<AActor>> ProjectilePool;
 
+//
+// AActor has no IsActive()/SetActive() -- those are UActorComponent members.
+// A parked actor is hidden, has no collision and does not tick.
 AActor* GetPooledProjectile() {
     for (AActor* Proj : ProjectilePool) {
-        if (!Proj->IsActive()) {
-            Proj->SetActive(true);
+        if (Proj && Proj->IsHidden()) {
+            Proj->SetActorHiddenInGame(false);
+            Proj->SetActorEnableCollision(true);
+            Proj->SetActorTickEnabled(true);
             return Proj;
         }
     }
     // Pool exhausted, spawn new
     return SpawnNewProjectile();
+}
+
+void ReturnToPool(AActor* Proj) {
+    Proj->SetActorHiddenInGame(true);
+    Proj->SetActorEnableCollision(false);
+    Proj->SetActorTickEnabled(false);
 }
 ```
 
@@ -379,6 +368,11 @@ UE_LOG(LogTemp, Warning, TEXT("Player health: %d"), Health);
 DECLARE_LOG_CATEGORY_EXTERN(LogMyGame, Log, All);
 DEFINE_LOG_CATEGORY(LogMyGame);
 UE_LOG(LogMyGame, Error, TEXT("Critical error!"));
+
+// UE 5.8: UE_LOGF takes a printf-style format literal given as "..." or
+// UTF8TEXT("...") (LogMacros.h). Epic asks new code to use it: UE_LOG "will
+// eventually be deprecated", and 5.8 ships ConvertUELog.py to convert most uses.
+UE_LOGF(LogMyGame, Warning, "Player health: %d", Health);
 ```
 
 ### Use Visual Logger
@@ -397,20 +391,21 @@ UE_VLOG_LOCATION(this, LogTemp, Log, TargetLocation, 50.f, FColor::Green, TEXT("
 
 | Feature | Use This (2026) | Notes |
 |---------|------------------|-------|
-| **Lighting** | Lumen + MegaLights | Production-ready in 5.8; Lumen Lite (Beta) for 60fps GI budgets |
+| **Lighting** | Lumen + MegaLights | Real-time GI, many shadow-casting lights |
 | **Geometry** | Nanite | High-poly meshes, automatic LOD |
 | **Materials** | Substrate | Modular, physically accurate |
-| **Input** | Enhanced Input | Unified with CommonUI in 5.8 |
+| **Input** | Enhanced Input | Rebindable, modular |
 | **VFX** | Niagara | GPU-accelerated |
-| **Audio** | MetaSounds + WASAPI backend | WASAPI is Windows default in 5.8; Audio Insights production-ready |
-| **World Streaming** | World Partition | Large open worlds; World Partition Insights for per-cell analysis |
+| **Audio** | MetaSounds | Procedural audio |
+| **World Streaming** | World Partition | Large open worlds |
 | **Gameplay** | Gameplay Ability System | Complex abilities, buffs |
-| **Replication** | Iris (new projects) | Production-ready in 5.8 |
-| **Character Customization** | Mutable | Production-ready in 5.8 |
-| **Crowds** | Mass + MetaHuman Crowd | Mass overhauled in 5.8 (MassCore); MetaHuman Crowd Experimental |
 
 ---
 
 **Sources:**
-- https://docs.unrealengine.com/5.8/en-US/
-- https://dev.epicgames.com/documentation/unreal-engine/unreal-engine-5-8-release-notes
+- https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-documentation?application_version=5.8
+- UE 5.8 release notes (MegaLights production-ready, Iris production-ready, Platform SDK Upgrades, `UE_LOGF` upgrade note): https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
+- 5.8 engine source, read from a UE 5.8.1 install on 2026-10-17: C++ standard — `Engine/Source/Programs/UnrealBuildTool/System/CppCompileEnvironment.cs` (`enum CppStandardVersion`); Blueprint Nativization — `Engine/Source/Developer/DeveloperToolSettings/Classes/Settings/ProjectPackagingSettings.h` (the enum is the only reference left in engine source); MegaLights setting — `Engine/Source/Runtime/Engine/Classes/Engine/RendererSettings.h` (`bEnableMegaLights`, category DirectLighting) and `Engine/Source/Runtime/Renderer/Private/MegaLights/MegaLights.cpp` (default 0); Substrate — `RendererSettings.h` (`bEnableSubstrate`, category Substrate) and `Engine/Source/Runtime/RenderCore/Private/RenderUtils.cpp` ("New projects created with 5.7, will have Substrate enabled automatically"); `UE_LOGF` — `Engine/Source/Runtime/Core/Public/Logging/LogMacros.h`
+- Object pooling calls — `Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h` (UE 5.8.1: `SetActorHiddenInGame`, `SetActorEnableCollision`, `SetActorTickEnabled`, `IsHidden`; no `IsActive`/`SetActive`) and `Engine/Source/Runtime/Engine/Classes/Components/ActorComponent.h` (`UActorComponent::SetActive`/`IsActive`); `AActor` API, UE 5.8: https://dev.epicgames.com/documentation/en-us/unreal-engine/API/Runtime/Engine/AActor?application_version=5.8
+- https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-7-release-notes
+- Object pooling container (`UPROPERTY() TArray<TObjectPtr<AActor>>`) — *Unreal Object Handling* (a UPROPERTY reference keeps an object alive "whether it's a simple Object pointer or an Unreal Engine container class"; a raw pointer "will not be automatically nulled, nor will it prevent garbage collection"): https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-object-handling-in-unreal-engine?application_version=5.7 ; *Object Pointers* ("TObjectPtr is only garbage collection safe if it is marked as a UPROPERTY"; use it in place of raw pointers): https://dev.epicgames.com/documentation/en-us/unreal-engine/object-pointers-in-unreal-engine?application_version=5.7

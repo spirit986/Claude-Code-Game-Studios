@@ -12,6 +12,8 @@ model: sonnet
 Resolved above — use as-is; `--review` overrides `review_mode` for this run. No
 block → defaults in `.claude/docs/config-resolution.md`.
 
+# Playtest Report
+
 
 
 ## Phase 1: Parse Arguments
@@ -106,7 +108,7 @@ In `new` mode, stop here with: Verdict: **COMPLETE** — blank template output; 
 
 ## Phase 2B: Analyze Mode
 
-Read the raw notes at the provided path. Cross-reference with existing design documents. Fill in the template above with structured findings. Flag any playtest observations that conflict with design intent.
+Read the raw notes at the provided path. Cross-reference with existing design documents, reading each by section: find the headings you need with the Grep tool (pattern `^#`, content mode) and Read those ranges with offset and limit. Fill in the template above with structured findings. Flag any playtest observations that conflict with design intent.
 
 An observation that describes a defect — a crash, a framerate drop, a softlock,
 something that plainly breaks rather than plays badly — goes in the **Bugs

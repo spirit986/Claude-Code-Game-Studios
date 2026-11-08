@@ -3,9 +3,11 @@ name: team-ui
 description: "Orchestrate the UI team through the UX pipeline — authoring, visual design, implementation, review, polish. Uses /ux-design, /ux-review, studio templates."
 argument-hint: "[UI feature description] [--review full|lean|solo]"
 user-invocable: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash(bash "*/.claude/skills/team-ui/../../hooks/yaml-helper.sh" resolve_config *)
+allowed-tools: Read, Glob, Grep, Write, Edit, Agent, AskUserQuestion, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash(bash "*/.claude/skills/team-ui/../../hooks/yaml-helper.sh" resolve_config *)
 model: sonnet
 ---
+# Team UI
+
 If no argument is provided, output usage guidance and exit without spawning any agents or reading any design files:
 > Usage: `/team-ui [UI feature description] [--review full|lean|solo]` — describe the screen or UI feature to build (e.g., `inventory screen`, `main menu`, `combat HUD`). Do not use `AskUserQuestion` here; output the guidance directly.
 
@@ -67,8 +69,6 @@ This is the same rule as the skipped-check reporting elsewhere in this file: **a
 indistinguishable, to the person reading the output, from one that was never
 enforced.**
 
-**Director gate skip rule**: Before spawning creative-director, art-director, or any other Tier 1/2 director for review (outside of PHASE-GATE triggers), apply the resolved mode: skip if solo mode; skip if lean mode and this is not a PHASE-GATE.
-
 ## Team Composition
 - **ux-designer** — User flows, wireframes, accessibility, input handling
 - **ui-programmer** — UI framework, screens, widgets, data binding, implementation
@@ -122,7 +122,9 @@ Launch independent agents in parallel where the pipeline allows it (e.g., Phase 
 
 ### Phase 1a: Context Gathering
 
-Before designing anything, read and synthesize:
+Before designing anything, read and synthesize. Read each GDD by section: find the
+headings you need with the Grep tool (pattern `^#`, content mode) and Read those
+ranges with offset and limit.
 - `design/gdd/game-concept.md` — platform targets and intended audience (or
   `design/game-brief.md`, the one-page brief that replaces it at `rigor: minimal` —
   its "Who it's for" line gives the audience; it names no platform)
@@ -132,8 +134,7 @@ Before designing anything, read and synthesize:
 - `design/accessibility-requirements.md` — committed accessibility tier (Basic, Standard, Comprehensive or Exemplary)
 
 **Report the status of every document above before designing anything.** Phase 1a
-reads five inputs; for a long time only the pattern library was guarded, and the
-other four could be absent without anything noticing. List each as
+reads five inputs, and any of them can be absent. List each as
 present or ABSENT.
 
 **`design/accessibility-requirements.md` is the one that must not pass silently.**

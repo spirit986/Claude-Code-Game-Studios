@@ -13,8 +13,8 @@ Flow State, Bartle Player Types). Use whichever engine set matches your project.
 
 ## The Default Path: Rigor Minimal
 
-`modes.rigor` defaults to `minimal` (`/start` asks; `/settings` changes it any
-time). At `minimal` the path to code is four steps:
+`modes.rigor` defaults to `minimal` (`/start` infers it from what you describe and shows it
+before saving; `/settings` changes it any time). At `minimal` the path to code is four steps:
 
 1. `/setup-engine` -- configure the engine
 2. `/brainstorm` -- writes the one-page `design/game-brief.md`, in place of the
@@ -117,7 +117,7 @@ Ask yourself: "What department would handle this in a real studio?"
 | `/ux-review` | Validate UX specs for accessibility and GDD alignment |
 | `/create-architecture` | Master architecture document for the game |
 | `/architecture-decision` | Creates an ADR |
-| `/architecture-review` | Validate all ADRs, dependency ordering, GDD traceability |
+| `/architecture-review` | Validate all ADRs, dependency ordering, GDD traceability — writes the index to `docs/architecture/requirements-traceability.md` |
 | `/create-control-manifest` | Flat programmer rules sheet from Accepted ADRs |
 | `/create-epics` | Translate GDDs + ADRs into epics (one per architectural module) |
 | `/create-stories` | Break a single epic into implementable story files |
@@ -180,8 +180,9 @@ Templates are in `.claude/docs/templates/`:
 
 - `game-design-document.md` -- for new mechanics and systems
 - `architecture-decision-record.md` -- for technical decisions
-- `architecture-traceability.md` -- maps GDD requirements to ADRs to story IDs
-  (`/architecture-review` writes it to `docs/architecture/requirements-traceability.md`)
+- `architecture-traceability.md` -- sample layout for a GDD requirement to ADR to
+  story index (`/architecture-review` writes its own index to
+  `docs/architecture/requirements-traceability.md`)
 - `risk-register-entry.md` -- for new risks
 - `narrative-character-sheet.md` -- for new characters
 - `test-plan.md` -- for feature test plans
@@ -247,20 +248,20 @@ If you already know what you need, jump directly to the relevant path:
      current docs from the web so agents suggest correct APIs
 3. **Validate the concept** — Run `/design-review design/gdd/game-concept.md`
    (or `design/game-brief.md`, if `/brainstorm` wrote the one-page brief)
-4. **Decompose into systems** — Run `/map-systems` to map all systems and dependencies
-5. **Design each system** — Run `/design-system [system-name]` (or `/map-systems next`)
-   to write GDDs in dependency order
-6. **Prototype the mechanic** — Run `/prototype [core-mechanic]` (1–3 days — before writing GDDs)
-7. **Design each system** — Run `/design-system [system-name]` to write GDDs, informed by prototype findings
-8. **Plan the first sprint** — After architecture and `/vertical-slice`, run `/sprint-plan new`
-9. Start building
+4. **Prototype the mechanic** — Run `/prototype [core-mechanic]` (1 day at most) to
+   test that the core idea is fun before you write GDDs
+5. **Decompose into systems** — Run `/map-systems` to map all systems and dependencies
+6. **Design each system** — Run `/design-system [system-name]` (or `/map-systems next`)
+   to write GDDs in dependency order, informed by the prototype findings
+7. **Plan the first sprint** — After architecture and `/vertical-slice`, run `/sprint-plan new`
+8. Start building
 
 ### Path B: "I know what I want to build"
 
 If you already have a game concept and engine choice:
 
 1. **Set up the engine** — Run `/setup-engine [engine] [version]`
-   (e.g., `/setup-engine godot 4.6`) — also creates technical preferences
+   (e.g., `/setup-engine godot 4.7`) — also creates technical preferences
 2. **Write the Game Pillars** — delegate to `creative-director`
 3. **Decompose into systems** — Run `/map-systems` to enumerate systems and dependencies
 4. **Design each system** — Run `/design-system [system-name]` for GDDs in dependency order
@@ -300,8 +301,8 @@ project.yaml                       -- Machine-readable project config (engine, m
   settings.json                    -- Claude Code hooks and project settings
   agents/                          -- 49 agent definitions (YAML frontmatter)
   skills/                          -- 74 slash command definitions (YAML frontmatter)
-  hooks/                           -- 12 event hooks (.sh, wired by settings.json) + yaml-helper.sh
-  rules/                           -- 13 path-specific rule files
+  hooks/                           -- 15 event hooks (.sh, wired by settings.json) + yaml-helper.sh, update-check.sh
+  rules/                           -- 14 path-specific rule files
   docs/
     quick-start.md                 -- This file
     technical-preferences.md       -- Legacy fallback for project.yaml config (mirror; see project.yaml at repo root)
@@ -313,5 +314,5 @@ project.yaml                       -- Machine-readable project config (engine, m
     setup-requirements.md          -- System prerequisites (Git Bash, jq, Python)
     settings-local-template.md     -- Personal settings.local.json guide
     CLAUDE-local-template.md       -- Personal CLAUDE.local.md guide (gitignored overrides)
-    templates/                     -- 39 document templates (+ per-section guidance)
+    templates/                     -- 62 document templates (+ per-section guidance)
 ```
