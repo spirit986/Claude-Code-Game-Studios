@@ -1,793 +1,351 @@
 ---
 name: story-done
-description: "End-of-story completion review — verifies each acceptance criterion, checks GDD/ADR deviations, prompts code review, updates status."
+description: "Closes a finished story: verifies each acceptance criterion, checks for design or ADR deviations and updates its status. Use when the user says a story is done, finished or ready to close."
 argument-hint: "[story-file-path] [--review full|lean|solo]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, AskUserQuestion, Agent, Bash(bash "*/.claude/skills/story-done/../../hooks/yaml-helper.sh" resolve_config *)
+allowed-tools: Read, Glob, Grep, Write, Edit, AskUserQuestion, Agent, Bash(bash "*/.claude/skills/story-done/../../hooks/yaml-helper.sh" resolve_config *), Bash(bash .claude/scripts/story-facts.sh *), Bash(bash .claude/scripts/story-status.sh*), Bash(bash .claude/scripts/adr-status.sh *), Bash(bash .claude/scripts/md-section.sh *), Bash(bash .claude/scripts/review-receipts.sh check *), Bash(bash .claude/scripts/session-state.sh *), Bash(git status --porcelain*)
 model: sonnet
 ---
 
-!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys review_mode,automation,workflow,story_granularity,qa.level,testing.strict,system_overrides`
+!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys review_mode,review_gate,automation,automation_always_ask,workflow,qa.level,gate_level,system_overrides`
 
 Resolved above — use as-is; `--review` overrides `review_mode`. No block →
 defaults in `.claude/docs/config-resolution.md`.
 
+Ask with the question tool. Without one, list the options numbered and end your turn
+to wait. A skipped or dismissed question is not an answer: ask again in plain text.
 
 # Story Done
 
-This skill closes the loop between design and implementation. Run it at the end
-of implementing any story. It ensures every acceptance criterion is verified
-before the story is marked done, GDD and ADR deviations are explicitly
-documented rather than silently introduced, code review is prompted rather than
-forgotten, and the story file reflects actual completion status.
+Closes a finished story. Every acceptance criterion is checked against evidence,
+deviations from the GDD, the ADRs and the story's own scope are reported as facts,
+and the story is marked Complete only on the user's yes.
 
-**Output:** Updated story file (Status: Complete) + surfaced next story.
+**Writes, after the user's yes:** the story file (`Status`, `Last Updated`, a
+`## Completion Notes` section) and its `production/sprint-status.yaml` entry;
+`docs/tech-debt-register.md` only when the user picks that option. The session
+checkpoint is written at the end of every run, whatever the verdict.
+**Next:** the next story (Phase 8).
 
----
+Asks follow `.claude/docs/automation-modes.md` (collaborative always asks, guided
+asks on major choices, autonomous logs and goes on; `automation_always_ask`
+categories always ask).
 
-## Phase 1: Find the Story
-
-
-See `.claude/docs/director-gates.md` for the full check pattern. Individual gate definitions live in `.claude/docs/director-gates/[gate-id].md` — the spawned agent reads its own gate file; do not read it in the parent session.
-
-
-Every `AskUserQuestion` call follows `.claude/docs/automation-modes.md`
-(collaborative asks always · guided major-only · autonomous logs and proceeds;
-`automation_always_ask` categories always prompt).
-
-**Workflow tier**: resolved per the story's system (per
-`.claude/docs/workflow-modes.md`) — **the GDD filename stem** of the story's
-`GDD:` path (`design/gdd/<stem>.md` → `<stem>`), with the `[system]` segment of
-its `TR-[system]-NNN` ID accepted only as a fallback alias: use the
-`system_overrides` row for that system if the block lists one, else the
-project value. It governs which Phase 4 deviation checks run — see Phase 4.
-
-**Workflow companion — `modes.story_granularity`** (resolved above — supplied by
-`modes.rigor` unless set explicitly): cadence expectation only — story-done fires **every 3–5 days** at
-`coarse`, **every 1–2 days** at `balanced`, **multiple times/day** at `fine`. It
-does not change any completion check.
-
-**`qa.level`**: controls whether test *evidence is required*, where
-`testing.strict` controls whether a failure blocks and `workflow` controls which
-docs exist. `modes.rigor` sets `qa.level` and `workflow` together; set either
-explicitly to vary it alone. `testing.strict` is not fronted by `rigor` at all.
-At `minimal`, no *test* evidence is required → skip the Logic, Integration and
-Config/Data evidence checks (Phase 3), the >50%-untested traceability escalation,
-and the Phase 4b QA gate; the acceptance-criteria verification still runs, and so
-do the Visual/Feel and UI screenshot gate and the `Run result:` check for other
-story types — the look is never waived. At
-`standard`, the story's own type requires evidence; at `full`, every type does.
-`testing.strict` then decides whether present-but-failing evidence blocks.
-(`rigor: minimal` sets both; `qa.level: minimal` on its own leaves the workflow
-tier where it was.)
-
-**If a file path is provided** (e.g., `/story-done production/epics/core/story-damage-calculator.md`):
-read that file directly.
-
-**If no argument is provided:**
-
-1. Check `production/session-state/active.md` for the currently active story.
-2. If not found there, read the most recent file in `production/sprints/` and
-   look for stories marked IN PROGRESS.
-3. If multiple in-progress stories are found, use `AskUserQuestion`:
-   - "Which story are we completing?"
-   - Options: list the in-progress story file names.
-4. If no story can be found, ask the user to provide the path.
-
----
-
-## Phase 2: Read the Story
-
-Read the full story file. Extract and hold in context:
-
-- **Story name and ID**
-- **GDD Requirement TR-ID(s)** referenced (e.g., `TR-combat-001`)
-- **Manifest Version** embedded in the story header (e.g., `2026-03-10`)
-- **ADR reference(s)** referenced
-- **Acceptance Criteria** — the complete list (every checkbox item)
-- **Implementation files** — files listed under "files to create/modify"
-- **Story Type** — the `Type:` field from the story header (Logic / Integration / Visual/Feel / UI / Config/Data)
-- **Engine notes** — any engine-specific constraints noted
-- **Definition of Done** — if present, the story-level DoD
-- **Estimated vs actual scope** — if an estimate was noted
-
-Also read:
-- `docs/architecture/tr-registry.yaml` — grep the story's TR-IDs
-  (`Grep pattern="id: <each TR-ID>" path="docs/architecture/tr-registry.yaml" output_mode="content" -A 6`),
-  not a full read of the registry. Read the *current* `requirement` text from each
-  matched entry. This is the source of truth for what the GDD required — do not use any
-  requirement text that may be quoted inline in the story (it may be stale).
-- The referenced GDD section — just the acceptance criteria and key rules, not
-  the full document. Use this to cross-check the registry text is still accurate.
-- The referenced ADR(s) — **just the `## Decision` and `## Consequences`
-  sections, never an unbounded full read.** Map headings first
-  (`Grep pattern="^## " path="docs/architecture/[adr-file].md" output_mode="content" -n`),
-  then bounded-`Read` only those two spans. This is the exact same content
-  Phase 4 item 3's ADR constraints check needs — hold it here, do not
-  re-read it there.
-- `docs/architecture/control-manifest.md` header — extract the current
-  `Manifest Version:` date (used in Phase 4 staleness check)
-
----
-
-## Phase 3: Verify Acceptance Criteria
-
-For each acceptance criterion in the story, attempt verification using one of
-three methods:
-
-### Automatic verification (run without asking)
-
-- **File existence check**: `Glob` for files the story said would be created.
-- **Test file check**: if a test file path is mentioned, confirm the file exists
-  with `Glob`. Do not run it — this skill establishes existence only (see the
-  note under Test Evidence Requirement), so report "test file present", never
-  "test passes".
-- **No hardcoded values check**: `Grep` for numeric literals in gameplay code
-  paths that should be in config files.
-- **No hardcoded strings check**: `Grep` for player-facing strings in the **code root** (resolve per `.claude/docs/code-root-resolution.md`). **If the code root is unresolved, report `NOT ASSESSED — code root unresolved` rather than zero hits.**
-  that should be in localization files.
-- **Dependency check**: if a criterion says "depends on X", check that X exists.
-
-### Manual verification with confirmation (use `AskUserQuestion`)
-
-- Criteria about subjective qualities ("feels responsive", "animations play correctly")
-- Criteria about gameplay behaviour ("player takes damage when...", "enemy responds to...")
-  — these are asked, never marked verified from reading the code: the code says
-  what should happen, not what the build does
-- Performance criteria ("completes within Xms") — ask if profiled or accept as assumed
-
-Batch up to 4 manual verification questions into a single `AskUserQuestion` call:
+Checklist (copy it and tick as you go):
 
 ```
-question: "Does [criterion]?"
-options: "Yes — passes", "No — fails", "Not tested yet"
+- [ ] Phase 1: story found, facts and settings read
+- [ ] Phase 2: what the story is checked against, loaded for its tier
+- [ ] Phase 3: each criterion verified, traceability table built
+- [ ] Phase 4: test evidence and run result checked
+- [ ] Phase 5: deviations and scope checked
+- [ ] Phase 6: review gates run, or their skip noted
+- [ ] Phase 7: report and verdict shown; close asked
+- [ ] Phase 8: next story named, checkpoint written, closing block printed
 ```
 
-Map each answer: `Yes — passes` → confirmed; `No — fails` → FAILS;
-`Not tested yet` → not evaluated — UNTESTED in the traceability table below, and
-the verdict is NOT ASSESSED (Phase 6) until someone checks it. If the criterion
-genuinely needs a full-build playtest, mark it `DEFERRED — requires playtest
-session` instead.
+## Phase 1: The story and its settings
 
-### Unverifiable (flag without blocking)
+**Which story.** The text typed after the skill name, with any `--review <mode>`
+pair removed, is the story path. With nothing typed:
 
-- Criteria that require a full game build to test (end-to-end gameplay scenarios)
-- Mark as: `DEFERRED — requires playtest session`
+1. The checkpoint in `production/session-state/active.md`: its **Current task**
+   line, when it names a story.
+2. Else the stories in progress: `bash .claude/scripts/story-facts.sh --all`, rows
+   whose state is `IN_REVIEW` or `IN_PROGRESS`. Several: ask "Which story are we
+   closing?" with one option per story.
+3. None: ask for the path. When `production/epics/` holds no story file at all,
+   stop:
+   "No stories found in `production/epics/` — run `/create-stories [epic-slug]` to make them (at `standard` and `full`, run `/create-epics` first if there is no epic yet)."
 
-### Test-Criterion Traceability
+**Its facts.** `bash .claude/scripts/story-facts.sh <story-path>` gives the status,
+type, layer, TR-IDs, ADRs, criteria count, test-evidence status and dependencies.
+Then read the story in full: the criteria text, the Test Evidence path, `## Files`,
+Out of Scope.
 
-After completing the pass/fail/deferred check above, map each acceptance
-criterion to the test that covers it:
+**Tier.** `workflow` for the story's system, keyed on the GDD filename stem of its
+`GDD:` path (`design/gdd/<stem>.md` → `<stem>`; the `[system]` of its TR-ID only
+when there is no GDD path): that system's `system_overrides` row if there is one,
+else the project value.
 
-For each acceptance criterion in the story:
+**What `qa.level` requires** (the evidence rows of `.claude/docs/coding-standards.md`).
+Take the value from the `qa.level` line above, never from `workflow` or `rigor`: the
+two are set apart, so `workflow: minimal` with `qa.level: standard` still requires a
+Logic story's unit test.
 
-1. Ask: is there a test — unit, integration, or confirmed manual playtest — that
-   directly verifies this criterion?
-   - **Unit test**: check `tests/unit/` for a test file or function name that
-     matches the criterion's subject (use `Glob` and `Grep`)
-   - **Integration test**: check `tests/integration/` similarly
-   - **Manual confirmation**: if the criterion was verified via `AskUserQuestion`
-     above with a "Yes — passes" answer, count that as a manual test
-   - **Retained screenshot**: if the criterion names something on screen and a
-     retained image under `production/qa/evidence/[story-slug]/` shows it (the
-     `Run result: OBSERVED` from `/dev-story` Phase 6 step 4), count that as
-     covered — put the image path in the Test column. A visual criterion
-     verified by looking is not UNTESTED; without this row every UI story
-     reads as >50% untested and false-escalates. "Shows it" means you opened
-     the image with `Read` and saw it; a checkpoint's `Run result: OBSERVED —
-     <text>` is `/dev-story`'s description, to quote as such, not yours.
-     **Never describe an image you have not opened.**
+| Check | `qa.level: minimal` | `qa.level: standard` | `qa.level: full` |
+|---|---|---|---|
+| Logic, Integration test | waived | required | required |
+| Config/Data smoke report | waived | required, advisory by default | required, **blocking** by default |
+| Visual/Feel, UI retained screenshot | required | required | required |
+| Untested criteria (Phase 3) | never escalate | more than half block | **any** blocks |
 
-2. Produce a traceability table:
+The look is never waived: a Visual/Feel or UI story needs its screenshot at every
+level. **Gate level** per type is the `gate_level` line above. At `full`, a
+Config/Data default (`config=advisory(default…)`) becomes blocking; an explicit
+`testing.strict.config: false` still makes it advisory.
+
+## Phase 2: What the story is checked against
+
+By the tier. Read every document by section, never whole.
+
+- **`full`:** the current requirement text of each TR-ID: in
+  `docs/architecture/tr-registry.yaml`, the lines matching `id: <TR-ID>\s*$` and the
+  entry's text below (the anchor keeps `TR-combat-001` from matching
+  `TR-combat-0010`; `\s*` takes a Windows line ending). Never use text quoted in the
+  story; the GDD's Acceptance Criteria and Detailed Design
+  (`bash .claude/scripts/md-section.sh extract design/gdd/<file>.md "Acceptance Criteria"`,
+  then the same for `"Detailed Design"`; exit 3: try `"Detailed Rules"`, the design
+  standard's name for the same section);
+  each ADR's status with `bash .claude/scripts/adr-status.sh <ADR ids>`, then its
+  Decision and Consequences sections.
+- **`standard`:** the same GDD sections; the ADR sections only for a critical ADR
+  (`adr-status.sh`'s layer column reads Foundation, or has no layer).
+- **`minimal`:** none. The story's criteria are the spec.
+
+At every tier, when `docs/architecture/control-manifest.md` exists, note its
+`Manifest Version` line.
+
+## Phase 3: Verify each criterion
+
+Take each acceptance criterion in turn:
+
+- **Checked by looking:** a file the criterion names exists; a test file it names
+  exists (report "test file present", never "test passes": nothing here runs it);
+  numeric literals in gameplay code that belong in data files; player-facing
+  strings in the code root that belong in localization files (resolve the root
+  per `.claude/docs/code-root-resolution.md`; unresolved, report `NOT ASSESSED —
+  code root unresolved`, never zero hits).
+- **Asked:** behaviour ("the player takes damage when…"), feel, and performance
+  criteria. Never mark one passed from reading the code: the code says what should
+  happen, not what the build does. Up to four per ask: "Does [criterion]?" Options:
+  Yes — passes / No — fails / Not tested yet. `Not tested yet` is UNTESTED, and
+  keeps the verdict at best NOT ASSESSED until someone checks it.
+- **Seen on screen:** a criterion about something visible is covered by a retained
+  image under `production/qa/evidence/[story-slug]/` (`[story-slug]`: the story
+  file's name without `.md`) that you opened and saw it in.
+  Never describe an image you have not opened; a checkpoint's `Run result:
+  OBSERVED — <text>` is `/dev-story`'s description, to quote as such.
+- **Needs a full playtest:** `DEFERRED — requires playtest session`. It does not
+  block.
+
+Then map each criterion to what covers it: a test under the test root, a
+"Yes — passes", or a retained image.
 
 ```
-| Criterion | Test | Status |
-|-----------|------|--------|
-| AC-1: [criterion text] | tests/unit/test_foo.gd::test_bar | COVERED |
-| AC-2: [criterion text] | Manual playtest confirmation | COVERED |
-| AC-3: [criterion text] | production/qa/evidence/[slug]/01-shop-open.png | COVERED |
-| AC-4: [criterion text] | — | UNTESTED |
+| Criterion | Covered by | Status |
+|-----------|------------|--------|
+| AC-1: [text] | tests/unit/[system]/[file]::[test] | COVERED |
+| AC-2: [text] | production/qa/evidence/[slug]/01-[what].png | COVERED |
+| AC-3: [text] | — | UNTESTED |
 ```
 
-3. Apply these escalation rules (skip entirely at `qa.level: minimal` — no
-   evidence is required, so untested criteria never escalate):
+Untested criteria escalate by the Phase 1 table: blocking above the line; below it,
+advisory, listed in the Completion Notes as "Untested criteria: [AC-N list]".
 
-   - If **>50% of criteria are UNTESTED**: escalate to **BLOCKING** — test
-     coverage is insufficient to confirm the story is actually done. The verdict
-     in Phase 6 cannot be COMPLETE until coverage improves.
-   - If **some (≤50%) criteria are UNTESTED**: remain ADVISORY — does not block
-     completion, but must appear in Completion Notes.
-   - If **all criteria are COVERED**: no action needed beyond including the
-     table in the report.
+## Phase 4: Test evidence and the run result
 
-4. For any ADVISORY untested criteria, add to the Completion Notes in Phase 7:
-   `"Untested criteria: [AC-N list]. Recommend adding tests in a follow-up story."`
+By the story's type, at the Phase 1 gate level. Skip a check `qa.level` waives, and
+say so: `Test evidence: waived at qa.level minimal`.
 
-### Test Evidence Requirement
+- **Logic:** the exact path in the story's Test Evidence section, else anywhere
+  under `tests/unit/[system]/`.
+- **Integration:** the same under `tests/integration/[system]/`, else a playtest
+  record naming this story in `production/qa/playtests/` (`/playtest-report`
+  writes them there).
+- **UI:** a UI story is satisfied by the retained screenshot of each screen touched,
+  under `production/qa/evidence/`. No evidence doc or sign-off needed.
+- **Visual/Feel:** the screenshot, and a Visual/Feel story also needs the sign-off:
+  `production/qa/evidence/[story-slug]-evidence.md` with every sign-off row
+  `[x] Approved` (one person may sign every role).
+- **Config/Data:** a `production/qa/smoke-*.md` report; none: "No smoke check
+  report found. Run `/smoke-check`."
+- **No Type:** advisory: "Story Type not declared. Add `Type:` to the story header."
 
-**First apply `qa.level` (resolved in Phase 1).** At `minimal`, no *test*
-evidence is required — skip the Logic, Integration and Config/Data checks below.
-But still run the Visual/Feel and UI check and the `Run result:` check: the look
-is not waived at minimal, only the tests are. At `standard`, require evidence
-for the story's own type. At `full`, require evidence for every story type. The
-`testing.strict` resolution below applies to every check that runs.
+A missing item is a gap at the gate level: BLOCKING stops COMPLETE, ADVISORY goes
+in the notes. Name what is missing and where it goes. An evidence doc with no image
+beside it is not evidence: a described check is an assertion.
 
-Based on the Story Type extracted in Phase 2, check for required evidence.
+**Is the evidence older than its code?** For a retained image, run
+`bash .claude/scripts/review-receipts.sh check production/qa/evidence/[story-slug]/stamp.txt`.
+Each `CHANGED:` or `GONE:` file: "[file] changed after the evidence was captured —
+re-capture it." `RECEIPT: NONE`: "no stamp — whether the evidence is older than the
+code cannot be told". Report these lines; they never change the verdict.
 
-**Resolve the gate level for this story's type.** A gate level is either
-BLOCKING (a gap prevents the COMPLETE verdict in Phase 6) or ADVISORY (a gap is
-noted in the Completion Notes but does not block). Resolve it from the
-`testing.strict` block **already resolved in the resolved-config block at the top of this skill** — not by reading
-`project.yaml` yourself:
+**Run result, every other type.** Take the `Run result:` line from the `/dev-story`
+checkpoint (only when its **Current task** names this story) or the story's Completion Notes.
+`OBSERVED` with a path: note it. `N/A — <reason>`: accept only a reason that says
+why nothing is observable ("it's a Logic story" is not one). `NOT VERIFIED` on a
+story whose criteria name something on screen: a gap at the gate level. No line:
+advisory, "confirm the build was launched and looked at". A user's "Yes — passes"
+to an on-screen criterion with no retained image is an assertion, not an
+observation: a gap at the gate level.
 
-1. Map the Story Type to a `testing.strict` key — Logic→`logic`,
-   Integration→`integration`, Visual/Feel→`visual`, UI→`ui`, Config/Data→`config`.
-   Take `testing.strict.<key>` from that resolved block. If its value is `true`
-   (case-insensitive) → BLOCKING; if `false` → ADVISORY; `unset` → fall through.
-2. Else read `testing.strict` as a plain boolean (legacy single-value form). If
-   its value is `true` → BLOCKING or `false` → ADVISORY, it applies to every type.
-3. Else use the default in the table below.
+## Phase 5: Deviations and scope
 
-> **Use that resolved block, never `project.yaml` directly.** `testing.strict.*` is
-> on the `/settings --local` whitelist, so a developer can set
-> `testing.strict.logic=false` in `project.local.yaml` for fast WIP commits —
-> `effects-map.md` specifies exactly this ("stricter dev's local `/story-done`
-> blocks earlier"). Reading `project.yaml` alone silently ignores that file: the
-> setting is accepted, displayed by `/settings`, and has no effect. The
-> `resolve_config` block at the top of this skill already merges local over base.
+Run, by tier (`minimal` skips 1 and 3):
 
-Only `true` and `false` (case-insensitive) are recognized at steps 1–2. A key
-that is present but holds any other value — `maybe`, `1`, `yes`, etc. — is
-treated as unset: continue to the next step, and surface the unrecognized value
-to the user.
+1. **GDD rules** (`full`; `standard` on its required sections): search the changed
+   files for the names the current GDD text and TR requirement use.
+2. **Manifest:** the story's `Manifest Version` older than the manifest's: ADVISORY,
+   "written against manifest v[story]; current is v[current] — run
+   `/story-readiness` to check". No manifest: skip. A `Manifest-Note:` line in the
+   story is carried into the deviations as written.
+3. **ADR constraints** (`full`; `standard` for a critical ADR): search for the
+   patterns the ADR's Decision or the manifest forbids.
+4. **Hardcoded values** in the changed files.
+5. **Scope:** the files the story lists under `## Files` against the code and test
+   files changed (`git status --porcelain`). A changed file the list does not name
+   is OUT OF SCOPE. A story with no `## Files` section: use the checkpoint's
+   **Files in progress** when its Current task names this story; else report
+   `Scope: NOT ASSESSED — the story lists no files`. A clean working tree: report
+   `Scope: not checked — no uncommitted changes to compare`.
 
-| Story Type | Required Evidence | Default Gate Level |
-|---|---|---|
-| **Logic** | Automated unit test in `tests/unit/[system]/` — must exist and pass (this skill verifies **existence**; see the note below Phase 3) | BLOCKING |
-| **Integration** | Integration test in `tests/integration/[system]/` OR playtest doc | BLOCKING |
-| **Visual/Feel** | Retained screenshot + sign-off in `production/qa/evidence/` | BLOCKING |
-| **UI** | Retained screenshot of each screen touched, in `production/qa/evidence/` | BLOCKING |
-| **Config/Data** | Smoke check pass report in `production/qa/smoke-*.md` | ADVISORY |
+Each deviation is **BLOCKING** (contradicts the GDD or ADR), **ADVISORY** (drifts
+but works the same; the user decides) or **OUT OF SCOPE** (for awareness). State
+them as facts; the user judges them.
 
-The **Default Gate Level** column applies when `testing.strict` is unset (the
-common case). When `testing.strict` is configured, the resolved value from
-steps 1–2 overrides it. Visual/Feel and UI default to BLOCKING because for a
-game the rendered result is the product; set `testing.strict.visual` or
-`testing.strict.ui` to `false` for an advisory gate.
+## Phase 6: Review gates
 
-> **Exception — `/smoke-check`.** The ADVISORY default for **Config/Data** above
-> governs *per-story evidence* gates, which is what this skill checks.
-> `/smoke-check` is a build-health gate, not a per-story evidence gate, so its own
-> unset default for `testing.strict.config` is **BLOCKING** — see
-> `.claude/skills/smoke-check/SKILL.md` § "Resolve the gate enforcement level".
-> The divergence is intentional; do not "fix" either side to match the other.
+Read the `review_gate` line above.
 
-> **This phase checks that evidence EXISTS. It does not run anything.** The
-> `Default Gate Level` table above, and `.claude/docs/coding-standards.md`, both
-> say a Logic story's test "must exist **and pass**". The checks below establish
-> only the first half — every one of them is a `Glob` or a `Grep`. A unit test
-> that exists and fails, or that contains no assertions, satisfies them.
->
-> Say which half you verified when you report. "Test file present at `<path>`"
-> is the honest claim; "tests pass" is not one this phase can make. Pass/fail is
-> established by `/gate-check` (runs the suite at a phase gate) and
-> `/smoke-check` (runs it before QA hand-off), both of which do execute.
->
-> Unlike `/regression-suite` and `/launch-checklist`, which stop at existence
-> because their `allowed-tools` has no `Bash`, this skill HAS `Bash` — the limit
-> here is the instruction, not the grant. Running the story's own test before
-> closing it is a live option; it is not enabled because it needs a configured
-> runner and a decision about what a missing runner should mean.
+- **`skill-gates=skip`:** no agent. Note `QL-TEST-COVERAGE skipped — [Solo | Lean]
+  mode` and `LP-CODE-REVIEW skipped — [Solo | Lean] mode`. In `lean` mode, ask: "Did
+  you run `/code-review` on the implemented files?" Options: Yes — it passed or was
+  approved with suggestions / No — skipping review for this story / No — I'll run
+  it before the sprint close-out. The answer sets Reviewed by.
+- **`skill-gates=run`:** read `references/review-gates.md` and
+  `.claude/docs/director-gates.md`, and run both gates now. On a skip, do not load
+  it.
 
-**For Logic stories**: first read the story's **Test Evidence** section to extract the
-exact required file path. Use `Glob` to check that exact path. If the exact path is not
-found, also search `tests/unit/[system]/` broadly (the file may have been placed at a
-slightly different location). If no test file is found at either location:
-- Flag at the resolved gate level: "Logic story has no unit test file. Story
-  requires it at `[exact-path-from-Test-Evidence-section]`. Create and run the
-  test before marking this story Complete."
+**Reviewed by** is never blank: `lead-programmer` when LP-CODE-REVIEW ran;
+`/code-review (you said you ran it; not verified here)` for the lean Yes; `self, no
+independent review` in solo mode, for either No, and when no implementation file
+exists yet.
 
-**For Integration stories**: read the story's **Test Evidence** section for the exact
-required path. Use `Glob` to check that exact path first, then search
-`tests/integration/[system]/` broadly, then check `production/session-logs/` for a
-playtest record referencing this story.
-If none found: flag at the resolved gate level (same rule as Logic).
-
-**For Visual/Feel and UI stories**: glob `production/qa/evidence/` for a
-retained screenshot for this story (`*.png`, `*.jpg`, `*.gif`) and for an
-evidence doc referencing it. What closes the story follows the evidence table
-in `.claude/docs/coding-standards.md`, the same at every `qa.level`:
-- A **UI** story is satisfied by the retained screenshot of each screen it
-  touched. No evidence doc or sign-off is required; note one if it exists.
-- A **Visual/Feel** story also needs the sign-off: the evidence doc
-  (`production/qa/evidence/[story-slug]-evidence.md`, from the test-evidence
-  template) with every sign-off row `[x] Approved`.
-
-Flag at the resolved gate level:
-- No screenshot: "No visual evidence found. Capture a screenshot of each screen or effect this story touched and save it under `production/qa/evidence/` before final closure." For Visual/Feel add: "then record sign-off in `production/qa/evidence/[story-slug]-evidence.md` using the test-evidence template."
-- An evidence doc but no screenshot retained beside it: "Evidence doc found at `[path]` but no screenshot is retained. A described check is an assertion, not evidence — capture the screen and save the image under `production/qa/evidence/` before final closure."
-- Visual/Feel with a screenshot but no evidence doc: "Screenshot found but no sign-off is recorded. Create `production/qa/evidence/[story-slug]-evidence.md` using the test-evidence template and obtain sign-off before final closure."
-- Visual/Feel sign-off rows still unchecked — grep the doc for `| .* | .* | .* | \[ \] Approved`: "Evidence file found at `[path]` but [N] sign-off(s) are still pending (shown as `[ ] Approved` in the sign-off table). Obtain required sign-offs before final closure. Note: for solo developers, all roles may be signed off by the same person."
-
-Otherwise note "Retained screenshot found[, sign-offs complete] — gate satisfied."
-
-The retained image **is** the `Run result: OBSERVED` from `/dev-story` Phase 6
-step 4 (`.claude/docs/run-and-observe.md`); its absence means the run was
-`NOT VERIFIED` or never happened, and the flag above is the consequence. The
-run is not waived at `qa.level: minimal`.
-
-**For every other story type**, read the `Run result:` line from the
-`/dev-story` checkpoint in `production/session-state/active.md` — only when its
-**Current task** names this story; a later `/dev-story` overwrites it — or from
-the story's `## Completion Notes`. `OBSERVED` with a retained path: note
-it. `N/A — <reason>`: accept only if the reason names why nothing is
-observable — "it's a Logic story" is not a reason. `NOT VERIFIED — <reason>`
-on a story whose acceptance criteria name anything on screen: flag at the
-resolved gate level for the story's type. No `Run result:` line at all: flag
-as ADVISORY — "the implementation summary carries no run result; confirm the
-build was launched and looked at before closure." The exception: when the
-acceptance criteria name something on screen and no retained image for this
-story is under `production/qa/evidence/`, nothing observed the story — a user's
-`Yes — passes` to such a criterion is an assertion, not the retained observation
-`.claude/docs/run-and-observe.md` requires — so flag it at the resolved gate
-level for the story's type, as for `NOT VERIFIED`.
-
-**For Config/Data stories**: check for any `production/qa/smoke-*.md` file.
-If none: flag at the resolved gate level — "No smoke check report found. Run `/smoke-check`."
-
-**If no Story Type is set**: flag as **ADVISORY** —
-"Story Type not declared. Add `Type: [Logic|Integration|Visual/Feel|UI|Config/Data]`
-to the story header to enable test evidence gate enforcement in future stories."
-
-Any BLOCKING test evidence gap prevents the COMPLETE verdict in Phase 6.
-
----
-
-## Phase 4: Check for Deviations
-
-Compare the implementation against the design documents.
-
-> **Workflow tier adjustment** (resolved in Phase 1, per the story's system).
-> Checks 1 (GDD rules) and 3 (ADR constraints) below are the `full` baseline:
-> - **`full`** — run both: full GDD traceability against the current TR text +
->   the ADR constraints check.
-> - **`standard`** — run the GDD rules check against the **5 required sections**;
->   run the ADR constraints check only where a **critical ADR** governs the story.
-> - **`minimal`** — **acceptance-criteria check only**: skip checks 1 and 3 (no
->   GDD/ADR traceability expected). Checks 2 (manifest), 4 (hardcoded values), and
->   5 (scope) still run as written.
->
-> This adjustment governs only the Phase 4 *deviation* checks. The test-evidence
-> gates (Phase 3 traceability, Phase 4b QA coverage) are governed by `qa.level`
-> and `testing.strict`, not `workflow` — they run independently of the tier here.
-
-Run these checks automatically:
-
-1. **GDD rules check**: Using the current requirement text from `tr-registry.yaml`
-   (looked up by the story's TR-ID), check that the implementation reflects what
-   the GDD actually requires now — not what it required when the story was written.
-   `Grep` the implemented files for key function names, data structures, or class
-   names mentioned in the current GDD section.
-
-2. **Manifest version staleness check**: Compare the `Manifest Version:` date
-   embedded in the story header against the `Manifest Version:` date in the
-   current `docs/architecture/control-manifest.md` header.
-   - If they match → pass silently.
-   - If the story's version is older → flag as ADVISORY:
-     `ADVISORY: Story was written against manifest v[story-date]; current manifest
-     is v[current-date]. New rules may apply. Run /story-readiness to check.`
-   - If control-manifest.md does not exist → skip this check.
-
-3. **ADR constraints check**: Use the ADR's `## Decision` section already
-   loaded in Phase 2 — do not read the ADR file again. Check for forbidden
-   patterns from `docs/architecture/control-manifest.md` (if it exists).
-   `Grep` for patterns explicitly forbidden in the ADR.
-
-4. **Hardcoded values check**: `Grep` the implemented files for numeric literals
-   in gameplay logic that should be in data files.
-
-5. **Scope check**: Did the implementation touch files outside the story's stated
-   scope? (files not listed in "files to create/modify")
-
-For each deviation found, categorize:
-
-- **BLOCKING** — implementation contradicts the GDD or ADR (must fix before
-  marking complete)
-- **ADVISORY** — implementation drifts slightly from spec but is functionally
-  equivalent (document, user decides)
-- **OUT OF SCOPE** — additional files were touched beyond the story's stated
-  boundary (flag for awareness — may be valid or scope creep)
-
----
-
-## Phase 4b: QA Coverage Gate
-
-**Skip this phase entirely at `qa.level: minimal`** (resolved in Phase 1) — no
-test evidence is required, so there is no coverage to review. Note: "QL-TEST-COVERAGE
-skipped — qa.level minimal." Proceed to Phase 5.
-
-**Review mode check** — apply before spawning QL-TEST-COVERAGE:
-- `solo` → skip. Note: "QL-TEST-COVERAGE skipped — Solo mode." Proceed to Phase 5.
-- `lean` → skip (not a PHASE-GATE). Note: "QL-TEST-COVERAGE skipped — Lean mode." Proceed to Phase 5.
-- `full` → spawn as normal.
-
-After completing the deviation checks in Phase 4, spawn `qa-lead` via `Agent` using gate **QL-TEST-COVERAGE** (`.claude/docs/director-gates/ql-test-coverage.md`).
-
-Pass:
-- The story file path and story type
-- Test file paths found during Phase 3 (exact paths, or "none found")
-- The story's `## QA Test Cases` section (the pre-written test specs from story creation)
-- The story's `## Acceptance Criteria` list
-- The GDD acceptance criteria and Edge Cases for the story's system, from the GDD
-  section read in Phase 2 — or "no GDD for this system" when there is none (at
-  `workflow: minimal` the story's own criteria are the spec); an absent GDD is
-  information for the gate, not a missing input
-
-The qa-lead reviews whether the tests actually cover what was specified — not just whether files exist.
-
-Apply the verdict:
-- **ADEQUATE** → proceed to Phase 5
-- **GAPS** → flag as **ADVISORY**: "QA lead identified coverage gaps: [list]. Story can complete but gaps should be addressed in a follow-up story."
-- **INADEQUATE** → flag as **BLOCKING**: "QA lead: critical logic is untested. Verdict cannot be COMPLETE until coverage improves. Specific gaps: [list]."
-- **NOT ASSESSED [missing input]** → no judgement was made; never read it as ADEQUATE. Name the missing input — supply it and re-run the gate, or carry it to Phase 6, where it keeps the verdict at best NOT ASSESSED.
-
-Skip this phase for Config/Data stories (no code tests required).
-
----
-
-## Phase 5: Lead Programmer Code Review Gate
-
-**Review mode check** — apply before spawning LP-CODE-REVIEW:
-- `solo` → skip. Note: "LP-CODE-REVIEW skipped — Solo mode." Proceed to Phase 6 (completion report).
-- `lean` → use `AskUserQuestion` before proceeding:
-  - Prompt: "Code review is skipped in lean mode. Did you run `/code-review` on the implemented files?"
-  - Options:
-    - `Yes — /code-review passed or was approved with suggestions`
-    - `No — skipping code review for this story`
-    - `No — I'll run /code-review before the sprint close-out`
-  - Record the answer in the completion notes (Phase 7). All three options proceed to Phase 6.
-- `full` → spawn as normal.
-
-Spawn `lead-programmer` via `Agent` using gate **LP-CODE-REVIEW** (`.claude/docs/director-gates/lp-code-review.md`).
-
-Pass: implementation file paths, story file path, relevant GDD section, governing ADR.
-
-Present the verdict to the user. If CONCERNS, surface them via `AskUserQuestion`:
-- Options: `Revise flagged issues` / `Accept and proceed` / `Discuss further`
-If REJECT, do not proceed to Phase 6 verdict until the issues are resolved.
-If NOT ASSESSED, name the input the gate said was missing and never treat it as APPROVE: supply it and re-run the gate, or carry it to Phase 6, where it keeps the verdict at best NOT ASSESSED.
-
-If the story has no implementation files yet (verdict is being run before coding is done), skip this phase and note: "LP-CODE-REVIEW skipped — no implementation files found. Run after implementation is complete."
-
----
-
-## Phase 6: Present the Completion Report
-
-Before updating any files, present the full report:
+## Phase 7: Report, verdict, and the close
 
 ```markdown
-## Story Done: [Story Name]
-**Story**: [file path]
-**Date**: [today]
+## Story Done: [title]
+**Story**: [path] · **Type**: [type] · **Date**: [today]
 
 ### Acceptance Criteria: [X/Y passing]
-- [x] [Criterion 1] — auto-verified (test file present)
-- [x] [Criterion 2] — confirmed
-- [ ] [Criterion 3] — FAILS: [reason]
-- [?] [Criterion 4] — DEFERRED: requires playtest
+- [x] [criterion] — [how verified]
+- [ ] [criterion] — FAILS: [reason]
+- [?] [criterion] — DEFERRED: requires playtest
 
-### Test-Criterion Traceability
-| Criterion | Test | Status |
-|-----------|------|--------|
-| AC-1: [text] | [test file::test name] | COVERED |
-| AC-2: [text] | Manual confirmation | COVERED |
-| AC-3: [text] | — | UNTESTED |
+### Traceability
+[the Phase 3 table]
 
 ### Test Evidence
-**Story Type**: [Logic | Integration | Visual/Feel | UI | Config/Data | Not declared]
-**Required evidence**: [unit test file | integration test or playtest | screenshot + sign-off | screenshot of each screen touched | smoke check pass]
-**Evidence found**: [YES — `[path]` | NO — BLOCKING | NO — ADVISORY]
+**Required**: [what the type needs at this qa.level, or "waived at qa.level minimal"]
+**Found**: [YES — path | NO — BLOCKING | NO — ADVISORY]
 
 ### Deviations
-[NONE] OR:
-- BLOCKING: [description] — [GDD/ADR reference]
-- ADVISORY: [description] — user accepted / flagged for tech debt
+[NONE, or each: BLOCKING / ADVISORY / OUT OF SCOPE — description — reference]
 
-### Scope
-[All changes within stated scope] OR:
-- Extra files touched: [list] — [note whether valid or scope creep]
+### Review
+**Reviewed by**: [value]
 
-### Verdict: COMPLETE / COMPLETE WITH NOTES / NOT ASSESSED / BLOCKED
+### Verdict: [COMPLETE | COMPLETE WITH NOTES | NOT ASSESSED | BLOCKED]
 ```
 
-**Verdict definitions:**
-- **COMPLETE**: all criteria pass, no blocking deviations
-- **COMPLETE WITH NOTES**: every criterion passes or is `DEFERRED` (Phase 3 —
-  evaluable, awaiting a playtest), with advisory deviations or deferred criteria
-  documented — list each DEFERRED criterion so it is not lost
-- **NOT ASSESSED**: one or more acceptance criteria could not be evaluated at
-  all — name which, and why
-- **BLOCKED**: failing criteria or blocking deviations must be resolved first
+**Verdicts, the first that matches wins:**
 
-**`NOT ASSESSED` — the story nobody could verify.** Rank: it **outranks COMPLETE
-and COMPLETE WITH NOTES** (a review that could not evaluate a criterion has not
-shown the criterion is met) and **ranks below BLOCKED** (a criterion known to
-fail is more actionable than one nobody could check, and demoting it would bury
-it). It is not a gentler BLOCKED: "this acceptance criterion fails" and "I could
-not tell whether it passes" send the reader to different fixes.
+1. **BLOCKED:** a criterion fails, or a BLOCKING gap or deviation stands.
+2. **NOT ASSESSED:** a criterion could not be evaluated: it names no observable
+   outcome, the user answered "Not tested yet", a review gate returned NOT ASSESSED
+   and its input was not supplied, evidence exists but cannot be read, or the GDD
+   or ADR a deviation would be judged against is missing. Name each one and what
+   would settle it. It outranks the two passes and never hides a failure.
+3. **COMPLETE WITH NOTES:** every criterion passes or is DEFERRED, with advisory
+   items listed. Information lines are not advisory items: the evidence-stamp
+   lines, an absent sprint file and the run result never turn COMPLETE into COMPLETE
+   WITH NOTES.
+4. **COMPLETE:** every criterion passes, nothing advisory.
 
-**Verdict precedence — first matching rule wins**, evaluated in this order:
-**BLOCKED**, then **NOT ASSESSED**, then **COMPLETE WITH NOTES**, then
-**COMPLETE**. A run with both a failing criterion and an unassessable one is
-BLOCKED. Stating the order mechanically, rather than leaving it to be inferred
-from the rank sentence, is what keeps two reviewers from grading the same story
-differently.
+**Then ask, before writing anything:** "How do you want to proceed?" Options:
+Close the story — mark it Complete and log notes (Recommended) / Close and log the
+advisory deviations as tech debt / Don't close yet — I'll fix things first / Close
+anyway, accepting the deviations. On BLOCKED or NOT ASSESSED, recommend "Don't close
+yet" and list what must change. Closing such a story is a `scope_changes` decision:
+when the `automation_always_ask` line lists it, ask in every automation mode, even
+when the user's own request is what got here. Write only on an explicit choice to
+close.
 
-Emit it when any of:
+**On close:**
 
-- An acceptance criterion **cannot be evaluated at all** — it names no observable
-  outcome, so no evidence could settle it either way.
-  > **Not the same as Phase 3's `DEFERRED`.** A criterion that is evaluable but
-  > needs a playtest is `DEFERRED — requires playtest session`, it does **not**
-  > block, and Phase 3 keeps ownership of it. This trigger is for a criterion no
-  > session could ever settle as written. If Phase 3 already marked it DEFERRED,
-  > that classification stands and this trigger does not fire.
-- A criterion the user answered **`Not tested yet`** (Phase 3) — it could be
-  checked, but nobody has. Name it and what would settle it: launch the build,
-  check it, then re-run `/story-done`.
-- QL-TEST-COVERAGE or LP-CODE-REVIEW returned **NOT ASSESSED** and the input it
-  named was not supplied.
-- The **test evidence is present but unreadable or unclassifiable** — corrupt,
-  empty, or of a type that cannot be determined.
-  > **Absent evidence is Phase 3's, not this trigger's.** Phase 3 resolves a
-  > missing file through `testing.strict`: BLOCKING types produce **BLOCKED**,
-  > ADVISORY types produce **COMPLETE WITH NOTES**. Both outrank or are already
-  > decided, so re-routing "absent" here would silently override an explicit
-  > advisory ruling. *Unreadable* is the genuinely unassessable case, and it is
-  > the only one this trigger claims.
-- **`/test-evidence-review` returned `NOT ASSESSED`** for this story — applicable
-  only when that skill was actually run against it, which this skill does not do
-  itself. It
-  propagates: that skill's whole point is that "could not check" is not
-  "checked and fine", and collapsing its unknown into a COMPLETE here would undo
-  the distinction one skill downstream. `coding-standards.md` marks Logic and
-  Integration evidence BLOCKING, so this is the path where an unverifiable story
-  would otherwise acquire a verdict saying somebody verified it.
-- A **deviation's severity cannot be determined** because the GDD or ADR it
-  would be judged against is missing.
-
-A `NOT ASSESSED` verdict takes the same Phase 7 path as BLOCKED: do not
-automatically proceed, list what could not be checked and what would make it
-checkable. Closing anyway remains the user's explicit call, and stays gated by
-Phase 7's `scope_changes` always-ask rule.
-
-If the verdict is **BLOCKED**: do not *automatically* proceed to Phase 7. List
-what must be fixed and offer to help fix the blocking items. This is the
-default path, not an absolute stop — the user may still explicitly ask to
-close the story anyway despite the blockers. That request is what routes to
-Phase 7's menu below, and Phase 7's own `scope_changes` always-ask rule is
-exactly what stands between that request and a silent close in autonomous
-mode. Do not treat "do not automatically proceed" as "Phase 7 is now
-unreachable" — it is reachable, on request, and gated when reached.
-
----
-
-## Phase 7: Update Story Status
-
-**Reached one of two ways**: normally, immediately after a COMPLETE or
-COMPLETE-WITH-NOTES verdict in Phase 6; or, after a BLOCKED **or NOT ASSESSED**
-verdict, only if the user explicitly asks to close the story despite the
-blockers (Phase 6 does not advance here on its own in either case).
-
-**Automation note**: This is the story-completion gate. Closing a story whose
-verdict is BLOCKED (failing acceptance criteria) **or NOT ASSESSED** (criteria
-nobody could evaluate) — the "Accept deviations as-is and close anyway" option —
-is a `scope_changes` decision. Call
-`is_always_ask_category scope_changes`; when it returns 0 (the default), this
-gate prompts via `AskUserQuestion` **regardless of `modes.automation`** —
-autonomous mode must NOT silently close a BLOCKED story, even when the user's
-own request is what got you here. For a COMPLETE or COMPLETE-WITH-NOTES
-verdict, autonomous mode may pick "Close the story (Recommended)" and record
-it via `log_decision`.
-
-Use `AskUserQuestion` before writing anything:
-- Prompt: "Verification complete. How do you want to proceed?"
-- Options:
-  - `Close the story — update file, mark Complete, log notes (Recommended)`
-  - `Close and log advisory deviations as tech debt in docs/tech-debt-register.md`
-  - `There are issues I want to fix first — don't close yet`
-  - `Accept deviations as-is and close anyway`
-
-If "Close", "Close and log tech debt", or "Accept deviations": edit the story file.
-If "Close and log tech debt": after updating the story file, also append the advisory deviations to `docs/tech-debt-register.md` (create the file if it does not exist).
-If "Fix first": stop here and list what the user flagged. Do not write any files.
-
-1. Update the status field: `Status: Complete`
-2. Update the `Last Updated:` field in the story header to today's date (format: `YYYY-MM-DD`). If the field does not exist, add it after the `Status:` line.
-3. Add a `## Completion Notes` section at the bottom:
-
-```markdown
-## Completion Notes
-**Completed**: [date]
-**Criteria**: [X/Y passing] ([any deferred items listed])
-**Deviations**: [None] or [list of advisory deviations]
-**Test Evidence**: [Logic: test file at path | Visual/Feel: evidence doc at path | None required (Config/Data)]
-**Code Review**: [Pending / Complete / Skipped]
-```
-
-4. If the user chose "Close and log tech debt": append each advisory deviation to `docs/tech-debt-register.md` as one row of `/tech-debt`'s register table — the format under "Debt Register Format" in `.claude/skills/tech-debt/SKILL.md` — so `/tech-debt report` can date it from its `Added` column:
+1. `bash .claude/scripts/md-section.sh set-field <story> Status Complete`, then
+   `set-field <story> "Last Updated" <YYYY-MM-DD> --after Status`.
+2. Add at the end of the story, with a file edit, never a shell command (a shell
+   write skips the project's write checks):
+   ```markdown
+   ## Completion Notes
+   **Completed**: [date]
+   **Criteria**: [X/Y passing] ([deferred items])
+   **Deviations**: [None, or the advisory ones]
+   **Test Evidence**: [path, or "waived at qa.level minimal", or "none required"]
+   **Reviewed by**: [value]
    ```
-   | TD-[next free NNN] | [category] | [deviation description] — from [story file path] | [files] | [S/M/L/XL] | [Low/Med/High/Critical] | — | Open | [YYYY-MM-DD] | Backlog |
-   ```
-   Category is one of `/tech-debt`'s six (Architecture, Code Quality, Test, Documentation, Dependency, Performance); Effort and Impact are your estimate from the deviation; Priority stays `—` until `/tech-debt prioritize` scores it; `Added` is today. If the file does not exist, create it with that format's heading, `Last updated:` and `Total items:` lines and table header; if it exists, update those two lines (and add the table header first if the file has none yet).
+3. "Close and log as tech debt": read `references/tech-debt-row.md` and add one
+   row per advisory deviation.
+4. `production/sprint-status.yaml`, when it exists: this story's entry gets
+   `status: done` and `completed: [date]`, and the top-level `updated` gets today.
+   The close answer covers it.
+5. Print a suggested commit: `git add [the changed code and test files] [story path]`
+   and `git commit -m "feat: [story title] ([TR-ID])"`.
 
-5. **Update `production/sprint-status.yaml`** (if it exists):
-   - Find the entry matching this story's file path or ID
-   - Set `status: done` and `completed: [today's date]`
-   - Update the top-level `updated` field
-   - This is a silent update — no extra approval needed (already approved in step above)
+**On "Don't close yet":** change no story file. List what the user flagged. Never
+fix a failing criterion yourself: report it and ask what to do.
 
-6. **Suggest a git commit**: Output a ready-to-use commit command covering the implementation files from the dev-story summary and the updated story file:
+## Phase 8: Next story, checkpoint, close
 
-```
-Suggested commit:
-git add [code-root and test-root files changed during implementation] [story-file-path]
-git commit -m "feat: [story title] ([TR-ID])"
-```
-
-The `validate-commit.sh` hook will verify design doc references and check for hardcoded values automatically.
-
-### Session State Update
-
-After updating the story file, silently update the checkpoint in
-`production/session-state/active.md` — **overwrite the `<!-- CHECKPOINT -->` …
-`<!-- /CHECKPOINT -->` block, never append** (schema:
-`.claude/docs/templates/session-state.md`). `session-start.sh` shows exactly
-that block when the next session opens. Fill **Next step** from Phase 8, so it
-names the same next story the user is shown:
-
-    <!-- CHECKPOINT -->
-    **Updated:** [date]
-    **Branch:** `[current git branch]`
-    **Current task:** /story-done — [story file path] closed: [COMPLETE / COMPLETE WITH NOTES / NOT ASSESSED / BLOCKED]
-    **Next step:** [/story-done [next story path] for an In Review story, else /dev-story [next story path] — or "build order done: play the build" — or the blocker to clear when every unfinished story is blocked — or the sprint's next step]
-    **Blocked on:** [nothing, or what blocked this verdict]
-    **Files in progress:** none
-    **Open questions:** [tech debt logged: N items, or none]
-    <!-- /CHECKPOINT -->
-
-If `active.md` does not exist, create it from the template. If it exists with no
-markers (a file from before the schema), insert the template's STATUS and
-CHECKPOINT blocks at the top and leave the rest untouched.
-Confirm in conversation: "Session state updated."
-
----
-
-## Phase 8: Surface the Next Story
-
-After completion, help the developer keep momentum. Which branch applies depends
-on whether there is a sprint at all.
-
-### No sprint plan — the minimal path
-
-**At `workflow: minimal`, or whenever `production/sprints/` holds no sprint
-plan, there is no sprint to close out.** The brief's build order is the plan and
-the story files carry it:
-
-1. Run `bash .claude/scripts/story-status.sh`, from the project root — after
-   Phase 7's story-file write, so this story's new status is in it. It prints
-   every unfinished story under `production/epics/`, whatever Status form its
-   file uses, **already in the route's order** — `IN_REVIEW`, then `IN_PROGRESS`, then `TODO` (a `Ready` or
-   `Not Started` story) in build (file-name) order — then `BLOCKED`, `OTHER`,
-   `NO_STATUS` and the `COMPLETE` count. It is the list `/help` and
-   `/sprint-status` read, so the three name the same next story; do not re-read
-   or re-rank the story files.
-2. The first `In Review` story is next (recommend `/story-done [path]` for it —
-   its work is written, and closing it first keeps finished work from piling
-   up); else the first `In Progress` one; else the first `Ready` or
-   `Not Started` one — the story on the script's first `IN_REVIEW`,
-   `IN_PROGRESS` or `TODO` line. Name any `Blocked` story with its blocker and pass
-   over it.
-
-   ```
-   ### Next Up
-   **[Story NNN: title]** — [1-line description]
-   Run `/story-done [path]` to close it (In Review) — else `/dev-story [path]` to implement it.
-   ```
-
-   At `minimal` recommend `/dev-story` directly (or `/story-done` for an In Review
-   story) — `/story-readiness` is not on
-   the minimal path (engine → brief → stories → code), and it checks fields the
-   minimal story template does not carry. With no sprint plan at a higher tier,
-   add the `/story-readiness [path]` line from the sprint branch below.
-3. **No unfinished story — only `COMPLETE N of N`** → every story is built —
-   at `minimal`, the brief's build order is done. Say so, and offer three ways on:
-   - play the build and note what feels wrong
-   - add the next stories from the brief with `/create-stories`
-   - if the game has outgrown a one-page brief, `/settings` to raise `modes.rigor`
-4. **No `IN_REVIEW`, `IN_PROGRESS` or `TODO` line, but `BLOCKED`, `OTHER` or
-   `NO_STATUS` lines remain** — every unfinished story is `Blocked`, `Draft`, or
-   has no status line. There is no Next Up, and the
-   build order is **not** done — never say it is. Name each such story with its
-   blocker (or `Draft` / `no status`), and suggest clearing the blocker first. For
-   a Draft or unstatused story: at `minimal`, finish it and set its Status to
-   `Ready`; at a higher tier, `/story-readiness [path]` shows what it still needs.
-
-**Never print the Sprint Close-Out Sequence on this branch** (`/smoke-check
-sprint`, `/team-qa sprint`, `/retrospective`, `/gate-check`, `/sprint-plan new`)
-— it closes a sprint, and there is none. Each of those still runs if the user
-asks for it; do not present them as required.
-
-### With a sprint plan
-
-1. Read the current sprint plan from `production/sprints/`.
-2. Find stories that are:
-   - Status: READY or NOT STARTED
-   - Not blocked by other incomplete stories
-   - In the Must Have or Should Have tier
-
-Present:
+**The next story.** With no sprint plan in `production/sprints/` (always at
+`workflow: minimal`): Run `bash .claude/scripts/story-status.sh` after the close, so
+this story's new status is in it. It prints the unfinished stories in route order;
+do not re-rank them. The first `In Review` story is next (the first `IN_REVIEW`
+line), else the first `In Progress` one, else the first `Ready` or `Not Started`
+one (`TODO`):
 
 ```
 ### Next Up
-The following stories are ready to pick up:
-1. [Story name] — [1-line description] — Est: [X hrs]
-2. [Story name] — [1-line description] — Est: [X hrs]
-
-Run `/story-readiness [path]` to confirm a story is implementation-ready
-before starting.
+**[Story NNN: title]** — [one line]
+Run `/story-done [path]` to close it (In Review) — else `/dev-story [path]` to implement it.
 ```
 
-If no more Must Have stories remain in this sprint (all are Complete or Blocked):
+When the `workflow` line above reads `minimal`, print no `/story-readiness` line at
+all, not even as an option: it is not on that path. With no sprint plan at
+`workflow: standard` or `full`, add "Run `/story-readiness [path]` first."
+
+- Only `COMPLETE N of N`: every story is built. Offer: play the build and note what
+  feels wrong; add stories from the brief with `/create-stories`; or `/settings` to
+  raise `modes.rigor` if the game has outgrown its brief.
+- Only `BLOCKED`, `OTHER` or `NO_STATUS` lines left: there is no Next Up, and the
+  build order is **not** done. Name each story with its blocker, `Draft` or `no
+  status`.
+- Never print the Sprint Close-Out Sequence on this branch: there is no sprint.
+
+With a sprint plan: read `references/sprint-next.md`.
+
+**The checkpoint**, on every verdict, closed or not. Pipe the block to
+`bash .claude/scripts/session-state.sh checkpoint`, which replaces the old block:
 
 ```
-### Sprint Close-Out Sequence
-
-All Must Have stories are complete. QA sign-off is required before advancing.
-Run these in order:
-
-1. `/smoke-check sprint` — verify the critical path still works end-to-end
-2. `/team-qa sprint` — full QA cycle: test case execution, bug triage, sign-off report
-3. `/retrospective` — capture what went well, what didn't, and action items for the next sprint
-4. `/gate-check` — advance to the next phase once QA approves (only if advancing a phase)
-5. `/sprint-plan new` — plan the next sprint, incorporating velocity data and retrospective action items
-
-Do not run `/gate-check` until `/team-qa` returns APPROVED or APPROVED WITH CONDITIONS.
+**Updated:** [date]
+**Branch:** `[current git branch]`
+**Current task:** /story-done — [story path]: [verdict], [closed | left open]
+**Next step:** [the Next Up command, or the fix the verdict named]
+**Blocked on:** [nothing, or what blocked the verdict]
+**Files in progress:** none
+**Open questions:** [tech debt logged: N items, or none]
 ```
 
-If there are Should Have stories still unstarted, surface them alongside the close-out sequence so the user can choose: close the sprint now, or pull in more work first.
+**The run's last reply ends with this block** (repeat it if you showed it earlier):
 
-If no more stories are ready but Must Have stories are still In Progress (not Complete):
-"No more stories ready to start — [N] Must Have stories still in progress. Continue implementing those before sprint close-out."
-
----
-
-## Collaborative Protocol
-
-**In `collaborative` mode (the default).** For `guided` and `autonomous` modes,
-see `.claude/docs/automation-modes.md` — the rules below describe collaborative
-behavior. The BLOCKED-override close (Phase 7) always prompts regardless of mode
-(it's a `scope_changes` always-ask decision).
-
-- **Never mark a story complete without user approval** — Phase 7 requires an
-  explicit "yes" before any file is edited.
-- **Never auto-fix failing criteria** — report them and ask what to do.
-- **Deviations are facts, not judgments** — present them neutrally; the user
-  decides if they are acceptable.
-- **BLOCKED and NOT ASSESSED verdicts are advisory** — the user can override and
-  mark complete anyway; document the risk explicitly if they do. For NOT
-  ASSESSED, the documented risk is that the criterion was never evaluated, not
-  that it failed — record which criteria those were, so the gap is recoverable
-  later rather than closed over.
-- Use `AskUserQuestion` for the code review prompt and for batching manual
-  criteria confirmations.
-
----
-
-## Recommended Next Steps
-
-- At `minimal`: run `/dev-story [next-story-path]` (`/story-done` for an In Review one); when every story is Complete, play the build, then `/create-stories` for more or `/settings` to raise `modes.rigor`
-- With a sprint plan: run `/story-readiness [next-story-path]` to validate the next story before starting implementation
-- If a sprint plan exists and all its Must Have stories are complete: run `/smoke-check sprint` → `/team-qa sprint` → `/gate-check`
-- If tech debt was logged: track it via `/tech-debt` to keep the register current
+```
+Verdict: [COMPLETE | COMPLETE WITH NOTES | NOT ASSESSED | BLOCKED] — [story path]
+Story: [closed — Status: Complete | left open — Status: [status]]
+Review: [Reviewed by value; the gates' skip notes]
+Next step: [/dev-story [path] | /story-done [path] | the fix | play the build]
+```

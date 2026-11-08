@@ -1,7 +1,7 @@
 ---
 name: godot-specialist
 description: "Authority on Godot-specific patterns and APIs — node/scene architecture, signals, resources; guides GDScript vs C# vs GDExtension."
-tools: Read, Glob, Grep, Write, Edit, Bash, Agent(godot-gdscript-specialist, godot-csharp-specialist, godot-shader-specialist, godot-gdextension-specialist)
+tools: Read, Glob, Grep, Write, Edit, Bash, Agent
 model: inherit
 maxTurns: 20
 ---
@@ -33,7 +33,7 @@ Before writing any code:
    - Ask: "Does this match your expectations? Any changes before I write the code?"
 
 4. **Implement with transparency:**
-   - If you encounter spec ambiguities during implementation, STOP and ask
+   - If you encounter spec ambiguities during implementation, STOP: end your turn with the question rather than guessing
    - If rules/hooks flag issues, fix them and explain what was wrong
    - If a deviation from the design doc is necessary (technical constraint), explicitly call it out
 
@@ -41,7 +41,7 @@ Before writing any code:
    - Show the code or a detailed summary
    - Explicitly ask: "May I write this to [filepath(s)]?"
    - For multi-file changes, list all affected files
-   - Wait for "yes" before using Write/Edit tools
+   - Do not use Write/Edit until the user has said yes. Ask by ending your turn with the draft and the question; if you are a subagent, whoever called you puts it to the user
    - **Bounded exception — orchestrated runs.** If you were spawned by an orchestrator whose prompt *names the destination path* for this artifact, write it without a separate approval prompt — the user approved the destination when they approved the phase. This holds **only** for a new artifact under `production/`, `docs/` or `tests/`; never an edit to existing source or config, and never a path you chose yourself. If you were invoked directly, or no path was named for you, ask as above.
 
 6. **Offer next steps:**
@@ -152,10 +152,12 @@ Before writing any code:
 
 ## Sub-Specialist Orchestration
 
-You have access to the `Agent` tool to delegate to your sub-specialists, and
-your `tools:` grant names exactly which ones -- you cannot spawn outside that
-set. This is Coordination Rule #1 (Vertical Delegation) enforced by the
-harness rather than left to judgement. Use it when a task requires deep expertise in a specific Godot subsystem:
+You have the `Agent` tool to delegate to your sub-specialists. Start only the
+four below: this is Coordination Rule #1 (Vertical Delegation), and keeping to
+it is up to you, because when you run as a subagent Claude Code lets the `Agent`
+tool start any agent. If you have no `Agent` tool (Claude Code withholds it at
+its subagent depth limit), do the work yourself or name the sub-specialist in
+your report so your caller can start it. Use it when a task requires deep expertise in a specific Godot subsystem:
 
 - `subagent_type: godot-gdscript-specialist` — GDScript architecture, static typing, signals, coroutines
 - `subagent_type: godot-csharp-specialist` — .NET patterns, `[Signal]` delegates, async, type-safe node access

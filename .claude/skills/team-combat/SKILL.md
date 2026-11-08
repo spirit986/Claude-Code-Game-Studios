@@ -3,9 +3,11 @@ name: team-combat
 description: "Orchestrate the combat team — game-designer, gameplay-programmer, ai-programmer, technical-artist, sound-designer, qa-tester — design through implement and validate."
 argument-hint: "[combat feature description] [--review full|lean|solo]"
 user-invocable: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash(bash "*/.claude/skills/team-combat/../../hooks/yaml-helper.sh" resolve_config *)
+allowed-tools: Read, Glob, Grep, Write, Edit, Agent, AskUserQuestion, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash(bash "*/.claude/skills/team-combat/../../hooks/yaml-helper.sh" resolve_config *)
 model: sonnet
 ---
+# Team Combat
+
 **Argument check:** If no combat feature description is provided, output:
 > "Usage: `/team-combat [combat feature description] [--review full|lean|solo]` — Provide a description of the combat feature to design and implement (e.g., `melee parry system`, `ranged weapon spread`)."
 Then stop immediately without spawning any subagents or reading any files.
@@ -144,7 +146,7 @@ via `AskUserQuestion`: "May I write the design document to
 
 ### Phase 2: Architecture
 Delegate to **gameplay-programmer** (with **ai-programmer** if AI is involved):
-- Review the design document
+- Review the design document, reading it by section: find the headings you need with the Grep tool (pattern `^#`, content mode) and Read those ranges with offset and limit
 - Design the code architecture: class structure, interfaces, data flow
 - Identify integration points with existing systems
 - Output: architecture sketch with file list and interface definitions

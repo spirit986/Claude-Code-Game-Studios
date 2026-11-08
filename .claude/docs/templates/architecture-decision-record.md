@@ -6,11 +6,10 @@
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
-> Stated here because every consumer of this field enforces the *consequences*
-> of acceptance (stories referencing a `Proposed` ADR are set `Blocked`; epics
-> require `Accepted`), so something has to say who may produce it. `technical-director` is the role `coordination-rules.md`
-> already escalates technical conflicts to, and an ADR is exactly that decision
-> made durable.
+> Why this is stated here: stories referencing a `Proposed` ADR are set `Blocked`,
+> and epics require `Accepted`, so the field needs a named owner.
+> `technical-director` is the role `coordination-rules.md` already escalates
+> technical conflicts to, and an ADR is that decision made durable.
 >
 > This does **not** relax the existing rule that `Status: Accepted` is never set
 > without explicit user confirmation — it narrows *which agent* may set it once
@@ -19,13 +18,13 @@
 
 ## Date
 
-[YYYY-MM-DD — when this ADR was written]
+[Date of decision]
 
 ## Last Verified
 
 [YYYY-MM-DD — when this ADR was last confirmed accurate against the current
-engine version and design. Update this date when you re-read and confirm it
-is still correct, even if nothing changed.]
+engine version and design. Update this date when you re-read and confirm it is
+still correct, even if nothing changed.]
 
 ## Decision Makers
 
@@ -34,21 +33,21 @@ is still correct, even if nothing changed.]
 ## Summary
 
 [2 sentences: what problem this ADR solves, and what was decided. Written for
-tiered context loading — a skill scanning 20 ADRs uses this to decide whether
-to read the full decision. Be specific: name the system, the problem, and the
+tiered context loading — a skill scanning 20 ADRs uses this to decide whether to
+read the full decision. Be specific: name the system, the problem, and the
 chosen approach.]
 
 ## Engine Compatibility
 
 | Field | Value |
 |-------|-------|
-| **Engine** | [e.g. Godot 4.6 / Unity 6 / Unreal Engine 5.8] |
-| **Domain** | [Physics / Rendering / UI / Audio / Navigation / Animation / Networking / Core / Input / Scripting] |
+| **Engine** | [e.g. Godot 4.7] |
+| **Domain** | [Physics / Rendering / UI / Audio / Navigation / Animation / Networking / Core / Input] |
 | **Layer** | [Foundation / Core / Feature / Presentation] |
-| **Knowledge Risk** | [LOW — in training data / MEDIUM — near cutoff, verify / HIGH — post-cutoff, must verify] |
-| **References Consulted** | [e.g. `docs/engine-reference/godot/modules/physics.md`, `breaking-changes.md`] |
-| **Post-Cutoff APIs Used** | [Specific APIs from post-cutoff engine versions this decision depends on, or "None"] |
-| **Verification Required** | [Concrete behaviours to test against the target engine version before shipping, or "None"] |
+| **Knowledge Risk** | [LOW / MEDIUM / HIGH — from VERSION.md] |
+| **References Consulted** | [List engine-reference docs read, e.g. `docs/engine-reference/godot/modules/physics.md`] |
+| **Post-Cutoff APIs Used** | [Any APIs from post-LLM-cutoff versions this decision depends on, or "None"] |
+| **Verification Required** | [Specific behaviours to test before shipping, or "None"] |
 
 > **Note**: If Knowledge Risk is MEDIUM or HIGH, this ADR must be re-validated if the
 > project upgrades engine versions. Flag it as "Superseded" and write a new ADR.
@@ -59,10 +58,9 @@ chosen approach.]
 > `/architecture-decision`, `/story-readiness`, `/propagate-design-change` and
 > `gate-pre-production.md`; a missing row counts as critical. At `standard`,
 > `/create-stories` **stops** for a missing critical ADR and only **warns** for a
-> non-critical one, so this row decides whether a run halts. Earlier revisions of
-> this template recorded no layer at all, leaving those sites to infer one from
-> the referencing epic — which gives the wrong answer whenever a Foundation-layer
-> ADR is referenced by a Core-layer epic, the common case.
+> non-critical one, so this row decides whether a run halts. Do not infer the
+> layer from the referencing epic: a Foundation-layer ADR is commonly referenced
+> by a Core-layer epic, which would give the wrong answer.
 >
 > The vocabulary is the same `Foundation / Core / Feature / Presentation` that
 > epics and stories already carry — do not invent a fifth value, and do not
@@ -81,110 +79,68 @@ chosen approach.]
 ## Context
 
 ### Problem Statement
-
-[What problem are we solving? Why must this decision be made now? What is the
-cost of not deciding?]
+[What problem are we solving? Why does this decision need to be made now?]
 
 ### Current State
-
 [How does the system work today? What is wrong with the current approach?]
 
 ### Constraints
-
-- [Technical constraints -- engine limitations, platform requirements]
-- [Timeline constraints -- deadline pressures, dependencies]
-- [Resource constraints -- team size, expertise available]
-- [Compatibility requirements -- must work with existing systems]
+- [Technical constraints]
+- [Timeline constraints]
+- [Resource constraints]
+- [Compatibility requirements]
 
 ### Requirements
-
-- [Functional requirement 1]
-- [Functional requirement 2]
-- [Performance requirement -- specific, measurable]
-- [Scalability requirement]
+- [Must support X]
+- [Must perform within Y budget]
+- [Must integrate with Z]
 
 ## Decision
 
-[The specific technical decision, described in enough detail for someone to
-implement it without further clarification.]
+[The specific technical decision made, described in enough detail for someone
+to implement it.]
 
-### Architecture
-
-```
-[ASCII diagram showing the system architecture this decision creates.
-Show components, data flow direction, and key interfaces.]
-```
+### Architecture Diagram
+[ASCII diagram or description of the system architecture this creates]
 
 ### Key Interfaces
-
-```
-[Pseudocode or language-specific interface definitions that this decision
-creates. These become the contracts that implementers must respect.]
-```
+[API contracts or interface definitions this decision creates]
 
 ### Implementation Guidelines
-
-[Specific guidance for the programmer implementing this decision.]
+[Specific guidance for the programmer implementing this decision — the rules a
+`/create-control-manifest` or `/dev-story` run should follow. State mandates as
+"must / must never" so they extract cleanly.]
 
 ## Alternatives Considered
 
 ### Alternative 1: [Name]
-
-- **Description**: [How this approach would work]
-- **Pros**: [What is good about this approach]
-- **Cons**: [What is bad about this approach]
-- **Estimated Effort**: [Relative effort compared to chosen approach]
+- **Description**: [How this would work]
+- **Pros**: [Advantages]
+- **Cons**: [Disadvantages]
+- **Estimated Effort**: [Relative effort compared to the chosen approach]
 - **Rejection Reason**: [Why this was not chosen]
 
 ### Alternative 2: [Name]
-
-[Same structure as above]
+- **Description**: [How this would work]
+- **Pros**: [Advantages]
+- **Cons**: [Disadvantages]
+- **Estimated Effort**: [Relative effort compared to the chosen approach]
+- **Rejection Reason**: [Why this was not chosen]
 
 ## Consequences
 
 ### Positive
-
 - [Good outcomes of this decision]
 
 ### Negative
-
-- [Trade-offs and costs we are accepting]
+- [Trade-offs and costs accepted]
 
 ### Neutral
-
 - [Changes that are neither good nor bad, just different]
 
 ## Risks
-
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|-----------|
-
-## Performance Implications
-
-| Metric | Before | Expected After | Budget |
-|--------|--------|---------------|--------|
-| CPU (frame time) | [X]ms | [Y]ms | [Z]ms |
-| Memory | [X]MB | [Y]MB | [Z]MB |
-| Load Time | [X]s | [Y]s | [Z]s |
-| Network (if applicable) | [X]KB/s | [Y]KB/s | [Z]KB/s |
-
-## Migration Plan
-
-[If this changes existing systems, the step-by-step plan to migrate.]
-
-1. [Step 1 -- what changes, what breaks, how to verify]
-2. [Step 2]
-3. [Step 3]
-
-**Rollback plan**: [How to revert if this decision proves wrong]
-
-## Validation Criteria
-
-[How we will know this decision was correct after implementation.]
-
-- [ ] [Measurable criterion 1]
-- [ ] [Measurable criterion 2]
-- [ ] [Performance criterion]
+- [Things that could go wrong]
+- [Mitigation for each risk]
 
 ## GDD Requirements Addressed
 
@@ -192,15 +148,29 @@ creates. These become the contracts that implementers must respect.]
      requirement, or explicitly state it is a foundational decision with no GDD
      dependency. Traceability is audited by /architecture-review. -->
 
-| GDD Document | System | Requirement | How This ADR Satisfies It |
-|-------------|--------|-------------|--------------------------|
-| [e.g. `design/gdd/combat.md`] | [e.g. Combat] | [e.g. "Hitbox detection must resolve within 1 frame"] | [e.g. "Jolt physics collision queries run synchronously in _physics_process"] |
+| GDD System | Requirement | How This ADR Addresses It |
+|------------|-------------|--------------------------|
+| [system-name].md | [specific rule, formula, or performance constraint from that GDD] | [how this decision satisfies it] |
 
 > If this is a foundational decision with no direct GDD dependency, write:
 > "Foundational — no GDD requirement. Enables: [list what GDD systems this
 > decision unlocks or constrains]"
 
-## Related
+## Performance Implications
+- **CPU**: [Expected impact]
+- **Memory**: [Expected impact]
+- **Load Time**: [Expected impact]
+- **Network**: [Expected impact, if applicable]
 
-- [Link to related ADRs — note if supersedes, contradicts, or depends on]
-- [Link to relevant code files once implemented]
+## Migration Plan
+[If this changes existing code, how do we get from here to there?]
+
+**Rollback plan**: [How to revert if this decision proves wrong]
+
+## Validation Criteria
+[How will we know this decision was correct? What metrics or tests?]
+
+## Related
+- [Links to related ADRs — note if supersedes, contradicts, or depends on]
+- [Links to related design documents]
+- [Links to relevant code files once implemented]

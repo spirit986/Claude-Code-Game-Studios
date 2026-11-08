@@ -1,10 +1,10 @@
-# Accessibility Requirements: [Game Title]
+# Accessibility Requirements
 
 > Authoring guidance: .claude/docs/templates/guidance/accessibility-requirements-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Draft | Committed | Audited | Certified
+> **Status**: [In Design | Committed | Audited | Certified]
 > **Author**: [user + ux-designer]
-> **Last Updated**: [Date]
+> **Last Updated**: [today's date]
 > **Accessibility Tier Target**: [Basic / Standard / Comprehensive / Exemplary]
 > **Platform(s)**: [PC / Xbox / PlayStation 5 / Nintendo Switch / iOS / Android]
 > **External Standards Targeted**:
@@ -14,7 +14,8 @@
 > - PlayStation Accessibility (Sony Guidelines) [Yes / No / Partial]
 > - Apple / Google Accessibility Guidelines [Yes / No / N/A — mobile only]
 > **Accessibility Consultant**: [Name and organization, or "None engaged"]
-> **Linked Documents**: `design/gdd/systems-index.md`, `docs/ux/interaction-pattern-library.md`
+> **Linked Documents**: `design/gdd/systems-index.md`, `design/ux/interaction-patterns.md`
+> **Template**: Accessibility Requirements
 
 > **Why this document exists**: Per-screen accessibility annotations belong in
 > UX specs. This document captures the project-wide accessibility commitments,
@@ -32,6 +33,8 @@
 ---
 
 ## Accessibility Tier Definition
+
+[To be designed]
 
 ### Tier Definitions
 
@@ -57,6 +60,8 @@
 ---
 
 ## Visual Accessibility
+
+[To be designed]
 
 | Feature | Target Tier | Scope | Status | Implementation Notes |
 |---------|-------------|-------|--------|---------------------|
@@ -93,6 +98,8 @@
 
 ## Motor Accessibility
 
+[To be designed]
+
 | Feature | Target Tier | Scope | Status | Implementation Notes |
 |---------|-------------|-------|--------|---------------------|
 | Full input remapping | Standard | All gameplay inputs, all platforms | Not Started | Every input bound by default must be rebindable. Remapping applies to keyboard, mouse, controller, and any supported peripheral independently. No two actions may be bound to the same input simultaneously (warn on conflict). Persist remapping to player profile. |
@@ -110,6 +117,8 @@
 
 ## Cognitive Accessibility
 
+[To be designed]
+
 | Feature | Target Tier | Scope | Status | Implementation Notes |
 |---------|-------------|-------|--------|---------------------|
 | Difficulty options | Standard | All gameplay difficulty parameters | Not Started | Separate granular sliders where possible (damage dealt, damage received, enemy aggression, enemy speed) rather than a single Easy/Normal/Hard label. Document which parameters are adjustable and which are fixed. Fixed parameters require a design justification. |
@@ -124,6 +133,8 @@
 ---
 
 ## Auditory Accessibility
+
+[To be designed]
 
 | Feature | Target Tier | Scope | Status | Implementation Notes |
 |---------|-------------|-------|--------|---------------------|
@@ -148,6 +159,8 @@
 
 ## Platform Accessibility API Integration
 
+[To be designed]
+
 | Platform | API / Standard | Features Planned | Status | Notes |
 |----------|---------------|-----------------|--------|-------|
 | Xbox (GDK) | Xbox Game Core Accessibility / XAG | [Input remapping via Xbox Ease of Access, high contrast support, narrator integration for menus] | Not Started | XAG compliance is required for ID@Xbox Game Pass consideration. Review XAG checklist at https://docs.microsoft.com/gaming/accessibility/guidelines |
@@ -161,6 +174,8 @@
 
 ## Per-Feature Accessibility Matrix
 
+[To be designed]
+
 > When a new system is added to systems-index.md, a row must be added here. If a
 > system has an unaddressed accessibility concern, it cannot be marked Approved
 > in the systems index. See guide for example rows.
@@ -172,6 +187,8 @@
 ---
 
 ## Accessibility Test Plan
+
+[To be designed]
 
 | Feature | Test Method | Test Cases | Pass Criteria | Responsible | Status |
 |---------|------------|------------|--------------|-------------|--------|
@@ -189,6 +206,8 @@
 
 ## Known Intentional Limitations
 
+[To be designed]
+
 > Every entry here is a risk — assess it honestly. See guide for example rows.
 
 | Feature | Tier Required | Why Not Included | Risk / Impact | Mitigation |
@@ -199,6 +218,8 @@
 
 ## Audit History
 
+[To be designed]
+
 > See guide for example rows.
 
 | Date | Auditor | Type | Scope | Findings Summary | Status |
@@ -208,6 +229,8 @@
 ---
 
 ## External Resources
+
+[To be designed]
 
 | Resource | URL | Relevance |
 |----------|-----|-----------|
@@ -223,6 +246,8 @@
 ---
 
 ## Open Questions
+
+[To be designed]
 
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|

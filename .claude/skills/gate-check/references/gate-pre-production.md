@@ -21,6 +21,24 @@
 - [ ] `design/accessibility-requirements.md` exists with accessibility tier committed
 - [ ] `design/ux/interaction-patterns.md` exists (pattern library initialized, even if minimal)
 
+**Which `/architecture-review` report counts.** Read the `Mode:` line of each
+`docs/architecture/architecture-review-*.md`, and for each item below use the
+newest report whose mode checked it:
+
+| Item | Modes that check it |
+|---|---|
+| `/architecture-review` has been run | `full` |
+| Traceability matrix has zero Foundation layer gaps | `full`, `coverage`, `rtm` |
+| Engine audit shows no deprecated API usage | `full`, `engine` |
+
+A `single-gdd` report saw one system and a `consistency` report only compared
+ADRs, so neither counts here. When no report's mode checked an item,
+that item is NOT ASSESSED, never passed on a narrower report: name the newest report's
+mode and the run that closes it (run `/architecture-review full`, or the mode
+the table names). A report with no `Mode:` line was written before 1.2.0 and
+does not say what it checked, so it counts for none of the three, as
+`/architecture-review` itself rules.
+
 **Quality Checks:**
 - [ ] Architecture decisions cover core systems (rendering, input, state management)
 - [ ] Technical preferences have naming conventions and performance budgets set
@@ -41,14 +59,20 @@ eventually misses an edge; the script cannot:
 Bash: bash .claude/scripts/adr-dep-graph.sh
 ```
 It prints `ADRS`, `EDGES` (one `adr-A -> adr-B` per Depends-On reference),
-`NO_DEPS_SECTION` (ADRs with no Depends On), and a `CYCLE:` line per node in any
-dependency cycle.
+`NO_DEPS_SECTION` (ADRs with no Depends On), `UNFILLED_DEPS` (a Depends On row
+still the template's placeholder), a `CYCLE:` line per ADR on a dependency cycle
+with its edges into that cycle, `BLOCKED_BY_CYCLE` (ADRs on no cycle that depend
+on one) and `ORDER` (the rest, dependencies first).
 - **Any `CYCLE:` lines → FAIL**: "Circular ADR dependency: [the nodes on the
   `CYCLE:` lines]. Neither can reach Accepted while the cycle exists. Remove one
-  'Depends On' edge to break the cycle."
+  'Depends On' edge shown on a `CYCLE:` line to break the cycle." Name the
+  `BLOCKED_BY_CYCLE` ADRs as waiting on the cycle, not as part of it: none of
+  their own edges is the one to remove.
 - No `CYCLE:` lines → this check passes. But the acyclic result is only as
-  trustworthy as the dependency sections are complete: if `NO_DEPS_SECTION` lists
-  many ADRs, surface that as a CONCERNS note rather than a clean pass.
+  trustworthy as the dependency sections are complete: if `NO_DEPS_SECTION` or
+  `UNFILLED_DEPS` lists many ADRs, surface that as a CONCERNS note rather than a
+  clean pass, naming each `UNFILLED_DEPS` ADR as unfilled (what it depends on is
+  unknown, not none).
 
 **Engine Validation** (read `docs/engine-reference/[engine]/VERSION.md` first):
 - [ ] ADRs that touch post-cutoff engine APIs are flagged with Knowledge Risk: HIGH/MEDIUM

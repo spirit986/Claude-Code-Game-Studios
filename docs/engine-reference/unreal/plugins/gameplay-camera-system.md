@@ -1,8 +1,18 @@
 # Unreal Engine 5.8 — Gameplay Camera System
 
-**Last verified:** 2026-08-16
-**Status:** ⚠️ Experimental (introduced in UE 5.5)
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Status:** ⚠️ Experimental (introduced in UE 5.5; still flagged Experimental in 5.8)
 **Plugin:** `GameplayCameras` (built-in, enable in Plugins)
+
+> **UE 5.8 changes:** The camera component can run its own camera system
+> ("standalone" mode, the default) or only a camera evaluation context. The
+> player camera manager now runs whatever is the view target as a "blackbox";
+> for blending or child directors a procedural camera must be activated with
+> dedicated new methods such as "Activate Gameplay Camera". Rig/modifier
+> activation and shake start/stop methods were moved; there is a new "aim-at"
+> camera action and a camera action service. `GameplayCameras.uplugin` (5.8.1)
+> is flagged Experimental and enabled by default. Source: UE 5.8 release notes,
+> https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
 
 ---
 
@@ -308,7 +318,7 @@ UGameplayCameraComponent* CameraComponent;
 
 ## Limitations (Experimental Status)
 
-- **API Instability**: Expect breaking changes in UE 5.8+
+- **API Instability**: Expect breaking changes in later releases (5.8 already reworked component and activation APIs)
 - **Limited Documentation**: Official docs still evolving
 - **Blueprint Support**: Primarily C++ focused (Blueprint support improving)
 - **Production Risk**: Test thoroughly before shipping
@@ -316,6 +326,6 @@ UGameplayCameraComponent* CameraComponent;
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/gameplay-cameras-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/gameplay-cameras-in-unreal-engine/
 - UE 5.5+ Release Notes
 - **Note:** This system is experimental. Always check latest official docs for API changes.

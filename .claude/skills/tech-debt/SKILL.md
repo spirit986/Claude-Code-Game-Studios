@@ -7,7 +7,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, AskUserQuestion, Bash(bash "*/.cla
 model: sonnet
 ---
 
-!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation`
+!`bash "${CLAUDE_SKILL_DIR}/../../hooks/yaml-helper.sh" resolve_config --keys automation,workflow`
+
+# Tech Debt
 
 
 
@@ -85,6 +87,12 @@ If no, stop here. Verdict: **BLOCKED** — user declined write.
 
 Ask the user for the description and affected files (plain text prompts).
 
+**Run as a subagent?** `lead-programmer` preloads this skill, and a subagent has
+no `AskUserQuestion`. Return the three questions below (category, effort,
+impact) in one reply, each as a short list of its options, and stop: whoever
+called you asks the user. Nothing goes into the register until the answers
+come back.
+
 Then use `AskUserQuestion` to collect the **category**:
 - Prompt: "What category does this tech debt belong to?"
 - Options:
@@ -135,7 +143,7 @@ one decimal and written to Priority. Higher scores first; ties go to the older
 `Added` date. An item whose Impact or Effort is `—` gets no score: list it after
 the scored items as "not scored — [column] not judged" rather than guessing one.
 
-Re-sort the register by priority score and recommend which items to include in the next sprint.
+Re-sort the register by priority score and recommend which items to include in the next sprint (at `workflow: minimal`, which has no sprints, which to build next).
 
 Present the re-prioritized register to the user.
 
@@ -167,7 +175,7 @@ Output the report to the user. This mode is read-only — no files are written. 
 
 ## Phase 3: Next Steps
 
-- Run `/sprint-plan` to schedule high-priority debt items into the next sprint.
+- Run `/sprint-plan` to schedule high-priority debt items into the next sprint (at `workflow: minimal`, which has no sprints, add them to the brief's build order instead).
 - Run `/tech-debt report` at the start of each sprint to track debt trends over time.
 
 ### Debt Register Format

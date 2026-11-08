@@ -1,7 +1,13 @@
 # Unreal Engine 5.8 — Navigation Module Reference
 
-**Last verified:** 2026-08-16
-**Knowledge Gap:** 5.8 adds per-mesh walkable surface control; StateTree and Mass improvements
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Knowledge Gap:** UE 5.7-5.8 navigation improvements
+
+> **UE 5.8 changes:** Static meshes can define their own walkable areas
+> during navmesh generation (per-mesh area costs, e.g. so AI walks around a
+> couch rather than over it), enabled per mesh through a flag and an area class
+> setting on NavCollision. Mover gained NavWalking support for Detour Crowd.
+> Source: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
 
 ---
 
@@ -11,17 +17,6 @@ UE 5.8 navigation systems:
 - **Nav Mesh**: Automatic pathfinding mesh for AI
 - **AI Controller**: Controls AI movement and behavior
 - **Behavior Trees**: AI decision-making (covered in AI module)
-- **StateTree**: Modern AI logic authoring — 5.8 adds starting states and compiler extensions
-- **Mass**: Large-scale AI/crowds — major multi-core overhaul in 5.8 (`MassCore`)
-
----
-
-## What's New in UE 5.8
-
-- **Per-mesh walkable surface control** during navmesh generation
-- **StateTree**: starting states and compiler extensions for improved authoring
-- **Mass framework overhaul**: lock-free scheduling, sparse fragment system, multi-core optimization via the `MassCore` module
-- **MetaHuman Crowd (Experimental)**: Mass-orchestrated MetaHuman crowds
 
 ---
 
@@ -345,5 +340,5 @@ void Tick(float DeltaTime) {
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/navigation-system-in-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/ai-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/navigation-system-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/ai-in-unreal-engine/

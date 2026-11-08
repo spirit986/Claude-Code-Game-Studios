@@ -11,13 +11,21 @@
    `producer` agent coordinates the propagation.
 5. **No Unilateral Cross-Domain Changes**: An agent must never modify files
    outside its designated directories without explicit delegation.
+6. **Read Design Docs by Section**: A brief names the sections an agent needs
+   by heading. Find a heading in a GDD, ADR or the art bible with the Grep
+   tool (`^#`, content mode) and Read that range with offset and limit; read a doc
+   whole only when the task needs all of it, and say why. `validate-read.sh`
+   refuses a whole-file read of a doc over 40 KB.
+7. **Nothing Goes Upstream**: Never file, open or comment on an issue or pull
+   request in an engine, plugin or vendor repository, even when asked. Write a
+   draft (`/bug-report` drafts only) and the user submits it.
 
 ## Model Tier Assignment
 
 Read `.claude/docs/model-tiers.md` on demand. It carries the tier table, the
 per-skill assignments and the authoring rule.
 
-**Load-bearing enough to restate here:** whether a skill's `model:` is used
+**Key point:** whether a skill's `model:` is used
 depends on how the skill starts. Typed as `/skill-name`: yes, except a `haiku`
 pin in auto mode. Started by Claude through the Skill tool: no. Never tell a
 user a `haiku` skill saves money; an `opus` skill typed in a Sonnet session
@@ -28,8 +36,7 @@ costs more. The agent-side `model:` is a different mechanism, and is applied.
 This project uses two distinct multi-agent patterns:
 
 ### Subagents (current, always active)
-Spawned via the `Agent` tool within a single Claude Code session (renamed from
-`Task` in Claude Code 2.1.63; `Task` still works as an alias). Used by all
+Spawned via the `Agent` tool within a single Claude Code session. Used by all
 `team-*` skills and orchestration skills. Subagents share the session's
 permission context, run sequentially or in parallel within the session, and
 return results to the parent.
@@ -43,8 +50,7 @@ must NOT be parallelised.
 
 ### Agent Teams (experimental — opt-in)
 Multiple independent Claude Code *sessions* coordinated via a shared task list.
-Opt-in and never yet used here — read `.claude/docs/agent-teams.md` on demand
-before proposing one.
+Opt-in only — read `.claude/docs/agent-teams.md` on demand before proposing one.
 
 ## Parallel Task Protocol
 

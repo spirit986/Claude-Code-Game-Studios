@@ -7,13 +7,15 @@ allowed-tools: Read, Glob, Grep
 model: sonnet
 ---
 
+# Estimate
+
 ## Phase 1: Understand the Task
 
 Read the task description from the argument. If the description is too vague to estimate meaningfully, ask for clarification before proceeding.
 
 Read CLAUDE.md for project context: tech stack, coding standards, architectural patterns, and any estimation guidelines.
 
-Read relevant design documents from `design/gdd/` if the task relates to a documented feature or system.
+Read relevant design documents from `design/gdd/` if the task relates to a documented feature or system. Read them by section: find the headings you need with the Grep tool (pattern `^#`, content mode) and Read those ranges with offset and limit.
 
 ---
 
@@ -21,7 +23,18 @@ Read relevant design documents from `design/gdd/` if the task relates to a docum
 
 Identify files and modules that would need to change:
 
-- Assess complexity (size, dependency count, cyclomatic complexity)
+- Measure size and branching with Grep, per affected file — Read, Glob and Grep
+  are this skill's only tools, so these counts are the measurement:
+  - **Size:** `Grep pattern="[^[:space:]]" path="[file]" output_mode="count"` —
+    non-blank lines.
+  - **Branching:** `Grep pattern="(^|[^A-Za-z0-9_])(if|elif|for|foreach|while|match|switch|case|catch)([^A-Za-z0-9_]|$)|&&|[|][|]" path="[file]" output_mode="count"` —
+    lines holding a branch or a boolean operator. The count
+    approximates cyclomatic complexity (comments and strings count too); report
+    it as that, never as a measured complexity.
+  - **Dependencies:** what each file pulls in — `preload`/`load(` (GDScript),
+    `using` (C#), `#include` (C++) — and which other files reference it.
+  - Name any file Grep could not count (missing, binary, unreadable) under Notes
+    and Assumptions rather than leaving it out of the totals.
 - Identify integration points with other systems
 - Check for existing test coverage in the affected areas
 - Read past sprint data from `production/sprints/` for similar completed tasks and historical velocity.
@@ -34,7 +47,7 @@ Identify files and modules that would need to change:
 ## Phase 3: Analyze Complexity Factors
 
 **Code Complexity:**
-- Lines of code in affected files
+- Size and branching of the affected files (Phase 2's Grep counts)
 - Number of dependencies and coupling level
 - Whether this touches core/engine code vs leaf/feature code
 - Whether existing patterns can be followed or new patterns are needed
@@ -69,6 +82,7 @@ Generated: [Date]
 |--------|-----------|-------|
 | Systems affected | [List] | [Core, gameplay, UI, etc.] |
 | Files likely modified | [Count] | [Key files listed below] |
+| Size of affected files | [N non-blank lines; M branch lines] | Grep counts; branch lines approximate complexity |
 | New code vs modification | [Ratio] | |
 | Integration points | [Count] | [Which systems interact] |
 | Test coverage needed | [Low / Medium / High] | |
@@ -125,7 +139,7 @@ This skill is read-only — no files are written. Verdict: **COMPLETE** — esti
 
 - If confidence is Low: recommend a time-boxed spike (`/prototype`) before committing.
 - If the task is > 10 days: recommend breaking it into smaller stories via `/create-stories`.
-- To schedule the task: run `/sprint-plan update` to add it to the next sprint.
+- To schedule the task: run `/sprint-plan update` to add it to the next sprint (if the project has no sprint plan, as on the default minimal workflow, add it to the brief's build order instead).
 
 ### Guidelines
 

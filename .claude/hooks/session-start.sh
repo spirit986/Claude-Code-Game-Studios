@@ -11,16 +11,19 @@
 # project, not this one. Resolving to the script's own location first would
 # override them. So, in order:
 #   1. cwd holds project.yaml   -> cwd   (a project root)
-#   2. cwd holds .claude/       -> cwd   (a project root not yet configured)
-#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment)
+#   2. cwd holds .claude/       -> cwd   (a project root not yet configured),
+#      unless cwd is itself named .claude: a stray .claude/.claude/ would
+#      make .claude/ a root, and the hooks would write .claude/production/
+#   3. CLAUDE_PROJECT_DIR       -> that  (populated in the hook environment),
+#      unless it names a .claude folder, for the same reason as rule 2
 #   4. this script's location   -> <root>/.claude/hooks/../.. by construction
 # Rule 4 always works and needs no environment at all; rules 1-2 stop it from
 # overriding a caller that legitimately means somewhere else.
 #
 # NOT an upward search: that resolves a nested project to its parent's config.
-if [ -f "project.yaml" ] || [ -d ".claude" ]; then
+if [ -f "project.yaml" ] || { [ -d ".claude" ] && [ "${PWD##*/}" != ".claude" ]; }; then
   CCGS_ROOT="$PWD"
-elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ]; then
+elif [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}" ] && case "${CLAUDE_PROJECT_DIR%/}" in */.claude|*\\.claude) false ;; *) true ;; esac; then
   CCGS_ROOT="$CLAUDE_PROJECT_DIR"
 else
   CCGS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)"
@@ -118,6 +121,19 @@ if [ -f ".claude/hooks/yaml-helper.sh" ]; then
     fi
 fi
 
+# --- Update alert ---
+# One line when a newer release is out. It reads a cache that a background job
+# refreshes at most once a day, so this hook makes no network call and never
+# waits for one. `updates.check: false` turns it off (effects-map.md).
+if [ -f .claude/hooks/update-check.sh ]; then
+    . .claude/hooks/update-check.sh
+    UPDATE_LINE=$(update_check_notice 2>/dev/null)
+    if [ -n "$UPDATE_LINE" ]; then
+        echo ""
+        echo "$UPDATE_LINE"
+    fi
+fi
+
 # --- Stage source agreement ---
 # `project.stage` in project.yaml is authoritative; production/stage.txt is a
 # legacy mirror kept for unmigrated hooks. Twelve consumers read the mirror --
@@ -160,16 +176,16 @@ if [ -n "$LATEST_MILESTONE" ]; then
     echo "Active milestone: $(basename "$LATEST_MILESTONE" .md)"
 fi
 
-# Open bug count
-BUG_COUNT=0
-for dir in tests/playtest production; do
-    if [ -d "$dir" ]; then
-        count=$(find "$dir" -name "BUG-*.md" 2>/dev/null | wc -l)
-        BUG_COUNT=$((BUG_COUNT + count))
-    fi
-done
-if [ "$BUG_COUNT" -gt 0 ]; then
-    echo "Open bugs: $BUG_COUNT"
+# Open bug count: bug files whose header Status is not Closed or Verified
+# Fixed, as bug-stats.sh counts them. Counting the files themselves reported
+# every closed bug as open.
+BUG_OPEN=""
+if [ -f .claude/scripts/bug-stats.sh ]; then
+    BUG_OPEN=$(bash .claude/scripts/bug-stats.sh --root . tests/playtest production 2>/dev/null \
+               | awk -F'\t' '$1 == "open" { print $2 }')
+fi
+if [ -n "$BUG_OPEN" ] && [ "$BUG_OPEN" -gt 0 ]; then
+    echo "Open bugs: $BUG_OPEN"
 fi
 
 # Code health quick check.
@@ -255,15 +271,23 @@ if [ -f "$STATE_FILE" ] && { ! command -v session_state_enabled >/dev/null 2>&1 
     echo "A previous session left state at: $STATE_FILE"
     echo "Read this file to recover context and continue where you left off."
     echo ""
-    # The CHECKPOINT region -- the same region pre-compact.sh reads.
+    # The CHECKPOINT region, as the schema in
+    # .claude/docs/templates/session-state.md defines it.
     #
-    # Previewing `tail -20` here while pre-compact takes `head -100` would put two
-    # consumers on opposite ends of one file, so which slice you got would
-    # depend on which hook happened to fire. Neither was wrong, because
-    # nothing defined where the recoverable state lived. The schema in
-    # .claude/docs/templates/session-state.md defines it; both read it now.
-    CHECKPOINT=$(sed -n '/<!-- CHECKPOINT -->/,/<!-- \/CHECKPOINT -->/p' "$STATE_FILE" 2>/dev/null \
-                 | grep -v '<!-- /\?CHECKPOINT -->')
+    # Previewing `tail -20` here while pre-compact took `head -100` put two
+    # consumers on opposite ends of one file, so which slice you got
+    # depended on which hook happened to fire. Neither was wrong, because
+    # nothing defined where the recoverable state lived. The schema does now.
+    #
+    # A marker is a line holding only the marker (spaces and a CR around it
+    # allowed), as rotate-session-state.sh matches it. The template's HOW
+    # comment quotes `<!-- /CHECKPOINT -->` inside a sentence, so an unanchored
+    # match took that quote for the closing marker of a file that had lost its
+    # real one, and previewed the narrative as the checkpoint.
+    CP_OPEN_RE='^[[:space:]]*<!-- CHECKPOINT -->[[:space:]]*$'
+    CP_CLOSE_RE='^[[:space:]]*<!-- /CHECKPOINT -->[[:space:]]*$'
+    CHECKPOINT=$(sed -n '/^[[:space:]]*<!-- CHECKPOINT -->[[:space:]]*$/,/^[[:space:]]*<!-- \/CHECKPOINT -->[[:space:]]*$/p' "$STATE_FILE" 2>/dev/null \
+                 | grep -v -e "$CP_OPEN_RE" -e "$CP_CLOSE_RE")
     TOTAL_LINES=$(wc -l < "$STATE_FILE" 2>/dev/null | tr -d ' ')
     # A sed range whose END address never matches runs to EOF. So a file with an
     # opening marker and NO closing one produced a non-empty capture of the whole
@@ -275,8 +299,8 @@ if [ -f "$STATE_FILE" ] && { ! command -v session_state_enabled >/dev/null 2>&1 
     # Two consumers of one region must agree on what malformed means.
     # `<!-- CHECKPOINT -->` cannot match `<!-- /CHECKPOINT -->` -- the slash sits
     # where the space would be -- so these two counts are independent.
-    CP_OPEN=$(grep -c '<!-- CHECKPOINT -->' "$STATE_FILE" 2>/dev/null | tr -d ' ')
-    CP_CLOSE=$(grep -c '<!-- /CHECKPOINT -->' "$STATE_FILE" 2>/dev/null | tr -d ' ')
+    CP_OPEN=$(grep -c "$CP_OPEN_RE" "$STATE_FILE" 2>/dev/null | tr -d ' ')
+    CP_CLOSE=$(grep -c "$CP_CLOSE_RE" "$STATE_FILE" 2>/dev/null | tr -d ' ')
     if [ "${CP_OPEN:-0}" -gt 0 ] && [ "${CP_CLOSE:-0}" -eq 0 ]; then
         echo "  [!] CHECKPOINT block is not terminated — no <!-- /CHECKPOINT --> marker."
         echo "      Not previewing it: without the closing marker the checkpoint"
@@ -285,6 +309,19 @@ if [ -f "$STATE_FILE" ] && { ! command -v session_state_enabled >/dev/null 2>&1 
         echo "      Re-create from .claude/docs/templates/session-state.md."
         echo "  ... ($TOTAL_LINES total lines — read the full file to continue)"
     elif [ -n "$CHECKPOINT" ]; then
+        # active.md is gitignored, so it stays put when you switch branches and
+        # a checkpoint written on one branch was shown as current on another.
+        # Its Branch value is the first backquoted word, or else the first word.
+        # Silent when there is no value, it is the template's [branch], or HEAD
+        # is detached ("HEAD") or not a repository (empty), so nothing compares.
+        CP_BRANCH=$(printf '%s\n' "$CHECKPOINT" | sed -n -E 's/^\*\*Branch(:\*\*|\*\*:)[[:space:]]*//p' \
+                    | head -1 | tr -d '\r' | sed -E 's/^`([^`]*)`.*/\1/; s/[[:space:]].*//')
+        case "$CP_BRANCH" in
+            ''|'['*) ;;
+            *) if [ -n "$BRANCH" ] && [ "$BRANCH" != "HEAD" ] && [ "$CP_BRANCH" != "$BRANCH" ]; then
+                   echo "[!] This checkpoint is from branch $CP_BRANCH; you are on $BRANCH. Check it still applies before acting on it."
+               fi ;;
+        esac
         # Capped at 25 lines / 3,000 characters. Claude Code keeps 10,000
         # characters of hook output and shows only a 2,000-character preview
         # past that, so an uncapped checkpoint could cut itself -- and anything

@@ -3,7 +3,7 @@
 > **How to go from zero to a shipped game using the Agent Architecture.**
 >
 > This guide walks you through every phase of game development using the
-> 49-agent system, 74 slash commands, and 12 automated hooks. It assumes you
+> 49-agent system, 74 slash commands, and 15 automated hooks. It assumes you
 > have Claude Code installed and are working from the project root.
 >
 > The pipeline has 7 phases. At `rigor: standard` and `full`, each phase has
@@ -65,8 +65,8 @@ This guided onboarding asks where you are and routes you to the right phase:
 - **Path B** -- Vague idea: routes to `/brainstorm` with seed
 - **Path C** -- Clear concept: routes to `/brainstorm` to write it down, or
   straight to `/setup-engine`
-- **Path D1** -- Existing project, few artifacts: normal flow
-- **Path D2** -- Existing project, GDDs/ADRs exist: runs `/project-stage-detect`
+- **Path D** -- Existing work: routes to `/setup-engine` when no engine is set
+  and there is no more than a concept; otherwise to `/project-stage-detect`,
   then `/adopt` for brownfield migration
 
 ### Step 3: Verify Hooks Are Working
@@ -150,8 +150,8 @@ production/           # Sprint plans, milestones, releases
 
 ## The Default Path: Rigor Minimal
 
-`modes.rigor` defaults to `minimal` (`/start` asks which tier fits; `/settings`
-changes it any time). At `minimal` the path to code is four steps:
+`modes.rigor` defaults to `minimal` (`/start` infers the tier from your description and shows it
+before saving; `/settings` changes it any time). At `minimal` the path to code is four steps:
 
 1. `/setup-engine` -- configure the engine
 2. `/brainstorm` -- writes the one-page `design/game-brief.md`, which replaces
@@ -196,7 +196,7 @@ with defined pillars and a player journey. This is where you figure out
                                                                    |
                                                                    v
                                                              /prototype
-                                                       (concept prototype — 1-3 days)
+                                                       (concept prototype — 1 day max)
                                                         PROCEED ↓     PIVOT → /brainstorm
                                                                    |
                                                                    v (PROCEED)
@@ -261,7 +261,7 @@ Validates structure and completeness before you proceed.
 Or with a specific engine:
 
 ```
-/setup-engine godot 4.6
+/setup-engine godot 4.7
 ```
 
 **What /setup-engine does:**
@@ -1399,22 +1399,25 @@ Tier 3 (Specialists):  gameplay-programmer, engine-programmer,
 
 ### Automated Hooks (Safety Net)
 
-The system has 12 hooks that run automatically:
+The system has 15 hooks that run automatically:
 
 | Hook | Trigger | What It Does |
 |------|---------|-------------|
 | `session-start.sh` | Session start | Shows branch, recent commits, detects active.md for recovery |
 | `detect-gaps.sh` | Session start | Detects fresh projects (no engine, no concept) and suggests `/start` |
 | `pre-compact.sh` | Before compaction | Logs the compaction (its output does not reach Claude) |
-| `post-compact.sh` | After compaction | Debug-log reminder only (its output does not reach Claude) |
-| `notify.sh` | Notification event | Shows Windows toast notification via PowerShell |
-| `validate-commit.sh` | Before commit | Checks for design doc references, valid JSON, no hardcoded values |
-| `validate-push.sh` | Before push | Warns on pushes to main, master or release/* |
+| `notify.sh` | Permission prompt, or idle about a minute | Shows Windows toast notification via PowerShell |
+| `validate-commit.sh` | Before commit | Checks design doc sections, valid JSON, hardcoded values, TODO format |
+| `validate-push.sh` | Before push, tag, merge or deploy | Warns on pushes to main, master or release/*, and on `git tag`, `git merge`, `gh release`, `butler push` and `steamcmd +run_app_build` |
+| `validate-read.sh` | Before a file read | Refuses a whole-file read of a design doc over 40 KB and answers with its headings |
+| `validate-write.sh` | Before a file write | Warns when a write would break a rule the skills state (never blocks) |
+| `validate-registry.sh` | Before an entity or TR-ID registry write | Warns when an entry would be deleted or renumbered, or a status is not in the header's list |
 | `validate-assets.sh` | After a file write | Checks data-file JSON, and asset naming in Godot's `assets/` |
 | `validate-skill-change.sh` | Skill file written | Advises running `/skill-test` after `.claude/skills/` changes |
 | `log-agent.sh` | Agent start | Logs agent invocations for audit trail |
 | `log-agent-stop.sh` | Agent stop | Completes agent audit trail (start + stop) |
-| `session-stop.sh` | **Every response ends** | Session logging and the subagent spawn tally. Despite the name it fires once per response, not once per session. |
+| `validate-agent-artifact.sh` | Agent stop | Warns when a subagent stops without writing the file its brief named |
+| `session-stop.sh` | **Every response ends** | Session logging and the subagent spawn tally, in the background. Despite the name it fires once per response, not once per session. |
 
 ### Context Resilience
 

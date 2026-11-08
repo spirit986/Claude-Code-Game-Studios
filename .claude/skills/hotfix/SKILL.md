@@ -4,9 +4,11 @@ description: "Emergency fix bypassing normal sprint process — hotfix branch, a
 argument-hint: "[bug-id or description]"
 user-invocable: true
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Agent, AskUserQuestion
+allowed-tools: Read, Glob, Grep, Write, Edit, Agent, AskUserQuestion, Bash(git rev-parse *), Bash(git tag --list*), Bash(git branch --list *)
 model: sonnet
 ---
+
+# Hotfix
 
 > **Explicit invocation only**: This skill should only run when the user explicitly requests it with `/hotfix`. Do not auto-invoke based on context matching.
 

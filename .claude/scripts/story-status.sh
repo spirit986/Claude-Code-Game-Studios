@@ -7,9 +7,9 @@
 #
 # WHY A SCRIPT. The route's rule is "an In Review story is next (its work is
 # written; close it), else an In Progress one, else the first Ready or Not
-# Started one in build order". Given every status line at once, a small model
-# ranked them by file order and got the Ready/Not Started case wrong; listing the
-# stories already in the route's order leaves nothing to rank. (In Review comes
+# Started one in build order". Ranking every status line by hand drifts toward
+# file order and gets the Ready/Not Started case wrong; listing the stories
+# already in the route's order leaves nothing to rank. (In Review comes
 # first: its work is already written, /story-done is quick, and closing it
 # keeps finished work from piling up behind started work.)
 #

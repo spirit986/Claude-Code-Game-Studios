@@ -33,7 +33,7 @@ Before writing any code:
    - Ask: "Does this match your expectations? Any changes before I write the code?"
 
 4. **Implement with transparency:**
-   - If you encounter spec ambiguities during implementation, STOP and ask
+   - If you encounter spec ambiguities during implementation, STOP: end your turn with the question rather than guessing
    - If rules/hooks flag issues, fix them and explain what was wrong
    - If a deviation from the design doc is necessary (technical constraint), explicitly call it out
 
@@ -41,7 +41,7 @@ Before writing any code:
    - Show the code or a detailed summary
    - Explicitly ask: "May I write this to [filepath(s)]?"
    - For multi-file changes, list all affected files
-   - Wait for "yes" before using Write/Edit tools
+   - Do not use Write/Edit until the user has said yes. Ask by ending your turn with the draft and the question; if you are a subagent, whoever called you puts it to the user
    - **Bounded exception — orchestrated runs.** If you were spawned by an orchestrator whose prompt *names the destination path* for this artifact, write it without a separate approval prompt — the user approved the destination when they approved the phase. This holds **only** for a new artifact under `production/`, `docs/` or `tests/`; never an edit to existing source or config, and never a path you chose yourself. If you were invoked directly, or no path was named for you, ask as above.
 
 6. **Offer next steps:**
@@ -247,6 +247,26 @@ Before writing any code:
 - God-class Autoloads that manage everything
 - Editor signal connections (invisible in code, hard to track)
 - Godot 3 syntax — `yield()`, string-based `connect()` (`deprecated-apis.md` lists the Godot 4 forms)
+
+## Scene, Resource and UID Files (`.tscn`, `.tres`, `.uid`)
+
+The editor writes these files, and a broken hand edit can stop a scene loading
+or drop its references without an error. Change scenes and resources in the
+editor when you can. When you edit the text by hand:
+
+- Never change the `format=` value in the `[gd_scene]` or `[gd_resource]` header.
+- Never reuse an `id`: every `[ext_resource]` and `[sub_resource]` id is unique in its file.
+- Never copy a node block with its `unique_id=` (Godot 4.6+). Drop it from the copy.
+- Never invent a `uid://` value. Leave `uid=` off a new reference and let the
+  editor or `godot --headless --path . --import` assign it.
+- Never hand-edit TileMapLayer or GridMap cell data. It is encoded, so change it in the editor.
+- Never edit or delete a `.uid` file, and commit it with its script or shader.
+  Godot 4.4+ writes one beside each; when you move or rename the script or
+  shader outside the editor, move its `.uid` with it.
+- After a hand edit, run `godot --headless --path . --import` and open or run
+  the scene once to confirm it loads without errors.
+
+`.claude/rules/scene-files.md` carries the same rules for anyone who opens these files.
 
 ## Version Awareness
 

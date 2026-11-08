@@ -1,7 +1,14 @@
 # Unreal Engine 5.8 — UI Module Reference
 
-**Last verified:** 2026-08-16
-**Knowledge Gap:** UMG and CommonUI improvements; CommonUI input unified with Enhanced Input in 5.8
+**Last verified:** 2026-10-17 (UE 5.8 changes block); 2026-02-13 (rest of file, written against 5.7)
+**Knowledge Gap:** UE 5.7-5.8 UMG and CommonUI improvements (Enhanced Input unified with Common UI in 5.8)
+
+> **UE 5.8 changes:** Enhanced Input and Common Input/UI are unified (no
+> duplicate data assets; Input Debugger for Enhanced Input UI). Slate:
+> `EWindowType::GameWindow` → `EWindowType::Normal`; the "OnlyGameWindow" CVars
+> are renamed "OnlyProjectContent" and `bDebugGameWindowOnly` is now
+> `bDebugProjectContentOnly`; a module depending on `SlateRHIRender` may also
+> need `SlateBaseRenderer`. Source: UE 5.8 release notes, https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-5-8-release-notes?application_version=5.8
 
 ---
 
@@ -9,15 +16,8 @@
 
 UE 5.8 UI systems:
 - **UMG (Unreal Motion Graphics)**: Visual widget-based UI (RECOMMENDED)
-- **CommonUI**: Cross-platform input-aware UI framework (console/PC) — input unified with Enhanced Input in 5.8
+- **CommonUI**: Cross-platform input-aware UI framework (console/PC)
 - **Slate**: Low-level C++ UI (engine/editor UI)
-
----
-
-## What's New in UE 5.8
-
-- **Unified input**: CommonUI input routing now runs through Enhanced Input — one set of Input Actions for gameplay and UI, no duplicate input data assets
-- Subtitle UI: new `QueueSingleSubtitle()` / `QueueSubtitlesFromAsset()` APIs (Beta) with per-platform overrides
 
 ---
 
@@ -356,5 +356,5 @@ SetVisibility(ESlateVisibility::Collapsed); // Collapsed = not rendered
 ---
 
 ## Sources
-- https://docs.unrealengine.com/5.8/en-US/umg-ui-designer-for-unreal-engine/
-- https://docs.unrealengine.com/5.8/en-US/commonui-plugin-for-advanced-user-interfaces-in-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/umg-ui-designer-for-unreal-engine/
+- https://docs.unrealengine.com/5.7/en-US/commonui-plugin-for-advanced-user-interfaces-in-unreal-engine/

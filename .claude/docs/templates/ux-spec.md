@@ -1,15 +1,16 @@
-# UX Specification: [Screen / Flow Name]
+# UX Spec: [Screen/Flow Name]
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Draft | In Review | Approved | Implemented
-> **Author**: [Name or agent — e.g., ux-designer]
-> **Last Updated**: [Date]
+> **Status**: [In Design | In Review | Approved | Implemented]
+> **Author**: [user + ux-designer]
+> **Last Updated**: [today's date]
+> **Journey Phase(s)**: [from context]
 > **Screen / Flow Name**: [Short identifier used in code and tickets — e.g., `InventoryScreen`, `NewGameFlow`]
-> **Platform Target**: [PC | Console | Mobile | All — list all that this spec covers]
+> **Platform Target**: [target platforms and input methods from 2h]
 > **Related GDDs**: [Links to the GDD sections that generated this UI requirement — e.g., `design/gdd/inventory.md § UI Requirements`]
 > **Related ADRs**: [Any architectural decisions that constrain this screen — e.g., `ADR-0012: UI Framework Selection`]
-> **Related UX Specs**: [Sibling and parent screens — e.g., `ux-spec-pause-menu.md`, `ux-spec-settings.md`]
+> **Related UX Specs**: [Sibling and parent screens — e.g., `pause-menu.md`, `settings.md`]
 > **Accessibility Tier**: Basic | Standard | Comprehensive | Exemplary
 > **Template**: UX Spec
 
@@ -22,6 +23,8 @@
 ---
 
 ## 1. Purpose & Player Need
+
+[To be designed]
 
 **What player need does this screen serve?**
 
@@ -39,6 +42,8 @@
 
 ## 2. Player Context on Arrival
 
+[To be designed]
+
 | Question | Answer |
 |----------|--------|
 | What was the player just doing? | [Prior activity / triggering state] |
@@ -55,6 +60,8 @@
 ---
 
 ## 3. Navigation Position
+
+[To be designed]
 
 **Screen hierarchy** (use indentation to show parent-child relationships):
 
@@ -82,6 +89,8 @@
 
 ## 4. Entry & Exit Points
 
+[To be designed]
+
 > Every entry point must have a corresponding exit point. Empty cells are a sign
 > that design work is unfinished. See guide Section 4 for worked examples.
 
@@ -103,6 +112,8 @@
 
 ### 5.1 ASCII Wireframe
 
+[To be designed]
+
 ```
 [Draw the screen layout using ASCII art. Suggested characters:
  ┌ ┐ └ ┘ │ ─    for borders
@@ -117,11 +128,15 @@ See guide Section 5 for a completed example wireframe.]
 
 ### 5.2 Layout Zones
 
+[To be designed]
+
 | Zone Name | Description | Approximate Size | Scrollable? | Overflow Behavior |
 |-----------|-------------|-----------------|-------------|-------------------|
 | [Zone] | [Contents and purpose] | [% width x % height] | [Yes/No] | [Overflow handling] |
 
 ### 5.3 Component Inventory
+
+[To be designed]
 
 > List every discrete UI component on this screen. This table drives the implementation
 > task list — each row becomes a component to build or reuse.
@@ -134,12 +149,16 @@ See guide Section 5 for a completed example wireframe.]
 
 ### 5.4 Information Hierarchy
 
+[To be designed]
+
 [What the player must see first on this screen, what second, and what can wait
 behind a tab, a scroll or a button — in that order, with the reason for each.]
 
 ---
 
 ## 6. States & Variants
+
+[To be designed]
 
 > Document every state before implementation — at minimum: loading, empty,
 > populated, and error. The states table is also the test matrix for QA.
@@ -152,6 +171,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 ---
 
 ## 7. Interaction Map
+
+[To be designed]
 
 > Cover every input method for the platform target (mouse, keyboard, gamepad,
 > touch). Gaps in this table are bugs waiting to happen. See guide Section 7.
@@ -178,6 +199,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 
 ## 8. Data Requirements
 
+[To be designed]
+
 > UI reads data; it does not own it. UI fires events; it does not write state
 > directly. Every displayed data element needs a source system and owner.
 > See guide Section 8 for a worked example.
@@ -194,6 +217,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 
 ## 9. Events Fired
 
+[To be designed]
+
 > Every destructive or state-changing player action must appear in this table.
 > See guide Section 9 for a worked example.
 
@@ -205,6 +230,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 
 ## 10. Transitions & Animations
 
+[To be designed]
+
 > Specify at least the screen enter and exit transitions, plus reduced-motion
 > behavior for each. See guide Section 10 for a worked example.
 
@@ -215,6 +242,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 ---
 
 ## 11. Input Method Completeness Checklist
+
+[To be designed]
 
 > Fill this checklist before marking the spec as Approved. Any unchecked item
 > blocks implementation start.
@@ -249,6 +278,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 ---
 
 ## 12. Accessibility
+
+[To be designed]
 
 > Project-wide standards live in `design/accessibility-requirements.md` — consult it
 > before filling this section so you do not duplicate or contradict project-level
@@ -290,6 +321,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 
 ## 13. Localization Considerations
 
+[To be designed]
+
 **General rules for this screen**:
 - All text elements must tolerate a minimum of 40% expansion from English baseline
 - RTL layout (Arabic, Hebrew): mirrored layout required — document which elements mirror and which do not
@@ -303,6 +336,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 ---
 
 ## 14. Acceptance Criteria
+
+[To be designed]
 
 > Write criteria a QA tester can verify independently, without asking the designer
 > what they meant. Every criterion should be binary — pass or fail, not subjective.
@@ -350,6 +385,8 @@ behind a tab, a scroll or a button — in that order, with the reason for each.]
 ---
 
 ## 15. Open Questions
+
+[To be designed]
 
 > Track unresolved design questions here. Each question should have a clear owner
 > and a deadline. An Approved spec must have zero open questions — move to a decision
