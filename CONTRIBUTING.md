@@ -30,7 +30,8 @@ These are the things that will get your PR rejected if you miss them.
 - SKILL.md must include YAML frontmatter: `name`, `description`,
   `argument-hint`, `allowed-tools`, and `model`
 - Model tier: `haiku` for read-only status checks, `opus` for multi-document
-  synthesis and phase gates, `sonnet` for everything else
+  synthesis, phase gates, code review, and the design and planning skills in
+  `.claude/docs/model-tiers.md`, `sonnet` for everything else
 
 **Hooks**
 - Use `grep -E` — never `grep -P` (Perl regex breaks on Windows Git Bash)

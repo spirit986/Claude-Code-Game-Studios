@@ -2,7 +2,7 @@
 
 # LP-CODE-REVIEW — Lead Programmer Code Review
 
-Agent: `lead-programmer` | Model tier: Sonnet
+Agent: `lead-programmer` | Model tier: Opus
 
 **Trigger**: After a dev story is implemented (`/dev-story`, `/story-done`), or
 as part of `/code-review`
