@@ -1,3 +1,5 @@
+> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md).
+
 <p align="center">
   <h1 align="center">Claude Code Game Studios</h1>
   <p align="center">

@@ -1,5 +1,7 @@
 # Model Tier Assignment
 
+> **UE-only variant:** the model and effort overrides in `.claude/docs/ue-variant.md` (Model and effort) win over the tier lists below.
+
 > ### When a skill's `model:` is used — skills only
 >
 > A skill's `model:` overrides the session model for the rest of the turn the
