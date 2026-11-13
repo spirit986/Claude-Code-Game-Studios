@@ -7,11 +7,6 @@
   "worktree": {
     "baseRef": "head"
   },
-  "modelSettings": {
-    "claude-sonnet-5-5": {
-      "effortLevel": "high"
-    }
-  },
   "permissions": {
     "defaultMode": "default",
     "allow": [

@@ -15,7 +15,8 @@
 > Two things follow:
 >
 > - **An `opus` skill costs more in a Sonnet session.** Typing
->   one of the `opus` skills listed below moves that turn to Opus.
+>   `/architecture-review`, `/gate-check` or `/review-all-gdds` moves that turn
+>   to Opus.
 > - **A `haiku` skill saves nothing in auto mode** (this project's settings start
 >   terminal sessions in Manual, but a user can switch) — or when Claude starts
 >   it. Never tell a user a `haiku` tier is saving them money.
@@ -38,7 +39,7 @@ model ships.
 |------|----------|-------------|
 | **Haiku** | `haiku` | Read-only status checks, formatting, simple lookups — no creative judgment needed |
 | **Sonnet** | `sonnet` | Implementation, design authoring, analysis of individual systems — default for most work |
-| **Opus** | `opus` | Multi-document synthesis, high-stakes phase gate verdicts, cross-system holistic review, code review, and the design and planning skills listed below |
+| **Opus** | `opus` | Multi-document synthesis, high-stakes phase gate verdicts, cross-system holistic review |
 | **Session** | `inherit` | Agents only — runs on whatever model the session runs |
 
 Skills with `model: haiku` (5): `/help`, `/onboard`, `/project-stage-detect`,
@@ -53,10 +54,7 @@ Skills with `model: haiku` (5): `/help`, `/onboard`, `/project-stage-detect`,
 > configured rigor against the project's observable working practice. That is
 > synthesis, which is what the Haiku row is defined as excluding.
 
-Skills with `model: opus` (12): `/architecture-review`, `/brainstorm`,
-`/code-review`, `/create-architecture`, `/create-epics`, `/create-stories`,
-`/design-review`, `/design-system`, `/gate-check`, `/review-all-gdds`,
-`/tech-debt`, `/vertical-slice`
+Skills with `model: opus` (3): `/architecture-review`, `/gate-check`, `/review-all-gdds`
 
 All other skills are Sonnet. When creating a new skill, assign Haiku if it only
 reads and formats; assign Opus if it must synthesize 5+ documents with
@@ -67,11 +65,11 @@ declares a tier. Whether the tier takes effect depends on how the skill starts
 **Agent model tiers.** 30 agents use `model: inherit` and run on the session's
 model. 19 are pinned:
 
-- **opus (4):** `creative-director`, `producer`, `technical-director`,
-  `lead-programmer`. Under an Opus session an `opus` pin runs on the session's
-  exact model, `[1m]` included, so it never gets a smaller window than its parent.
-- **sonnet (15):** `prototyper`, `devops-engineer`, `community-manager` and the
-  12 engine sub-specialists:
+- **opus (3):** `creative-director`, `producer`, `technical-director`. Under an
+  Opus session an `opus` pin runs on the session's exact model, `[1m]` included,
+  so it never gets a smaller window than its parent.
+- **sonnet (16):** `lead-programmer`, `prototyper`, `devops-engineer`,
+  `community-manager` and the 12 engine sub-specialists:
   `godot-csharp-specialist`, `godot-gdextension-specialist`,
   `godot-gdscript-specialist`, `godot-shader-specialist`,
   `ue-blueprint-specialist`, `ue-gas-specialist`, `ue-replication-specialist`,
@@ -103,29 +101,6 @@ the session's model with one line in your `.claude/settings.local.json`
 { "env": { "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1" } }
 ```
 
-It applies to **every** pin, the four `opus` agents included: under a
+It applies to **every** pin, the three `opus` directors included: under a
 Sonnet session they run on Sonnet too. `CLAUDE_CODE_SUBAGENT_MODEL` alone does
 not do it: it applies only to agents that set no model of their own.
-
-## Effort
-
-Effort is set separately from the model. Claude Code's default is `medium` on
-Opus 5.5, Sonnet 5.5 and Haiku 5.5. This project changes it in two places:
-
-- **Sonnet: `high`.** `.claude/settings.json` saves it under `modelSettings`, so
-  it reaches the main conversation and every agent whenever they run on Sonnet,
-  with no `effort:` line in the Sonnet skill and agent files.
-- **Directors: `xhigh`.** `creative-director`, `producer` and
-  `technical-director` set `effort: xhigh` in their own files.
-
-Everything else on Opus, `lead-programmer` and the `opus` skills included, uses
-the level you saved for Opus with `/effort`, or `medium` if you saved none.
-`CLAUDE_CODE_EFFORT_LEVEL` outranks all of these.
-
-A `sonnet` skill changes effort as well as model until your next prompt. That
-includes a skill Claude starts: the conversation stays on Opus, but reports the
-Sonnet level, `high`.
-
-Unlike a `model:` alias, the `modelSettings` key names one model version. When
-`sonnet` moves to a new model, add that model's ID to `.claude/settings.json`,
-or Sonnet falls back to that model's default.
