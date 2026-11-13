@@ -1,6 +1,6 @@
 ---
 name: setup-engine
-description: "Configure engine and version. Pins it in CLAUDE.md; WebSearch fills reference docs when the version is beyond LLM training data."
+description: "Sets up and pins the Unreal Engine version for this project (UE-only variant). Use to set up or upgrade it."
 argument-hint: "[engine] | [engine version] | refresh | upgrade [old-version] [new-version] | no args for guided selection"
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Agent, AskUserQuestion, Bash(bash "*/.claude/skills/setup-engine/../../hooks/yaml-helper.sh" resolve_config *), Bash(godot --version), Bash(godot --headless --path . --import), Bash(command -v godot), Bash(uname -s), Bash(bash .claude/scripts/project-coherence.sh*)
@@ -37,6 +37,8 @@ Four modes:
 ---
 
 ## 2. Guided Mode (No Arguments)
+
+UE-only variant: with no arguments, run as `/setup-engine unreal 5.8` and skip engine selection, which would otherwise default to Web.
 
 **Read `references/2-guided-mode.md` now and follow it** — this phase's steps are in that file, not here. Read it again if the conversation was compacted or resumed during this phase.
 

@@ -1,3 +1,5 @@
+> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md).
+
 <p align="center">
   <h1 align="center">Claude Code Game Studios</h1>
   <p align="center">
@@ -84,8 +86,8 @@ Tier 3 — Specialists
   live-ops-designer    community-manager
 ```
 
-Each agent declares a model in its frontmatter: the three directors and
-`lead-programmer` ask for Opus, fifteen specialists name Sonnet, and the remaining thirty
+Each agent declares a model in its frontmatter: the three directors ask for
+Opus, `lead-programmer` and fifteen specialists name Sonnet, and the remaining thirty
 **inherit your session's model**. Treat the tiers as seniority of role, not as
 a billing plan — most of the studio runs on whatever model you are already using.
 
