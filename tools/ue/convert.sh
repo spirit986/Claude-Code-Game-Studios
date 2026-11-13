@@ -77,8 +77,9 @@ edit_readme() {
   local f=README.md
   [ -f "$f" ] && ! in_conflict "$f" || { ue_warn "$f is missing or in conflict; no banner"; return; }
   grep -qF '> **UE-only variant.**' "$f" && return
+  # At the very top: upstream's README opens with an HTML block, not a heading.
   BANNER="> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md)." \
-  rewrite "$f" awk 'NR == 1 { print; print ""; print ENVIRON["BANNER"]; next } { print }'
+  rewrite "$f" awk 'NR == 1 { print ENVIRON["BANNER"]; print "" } { print }'
 }
 
 # --- /setup-engine: Unreal by default (required) ---------------------------------
@@ -211,15 +212,15 @@ checks() {
   f=studio-tests/catalog.yaml
   [ -f "$f" ] && grep -qE '^[[:space:]]*- name: (godot|unity)-' "$f" && fail "$f: Godot/Unity entries remain (its section markers moved upstream?)"
   for s in "${UE_OPUS_SKILLS[@]}"; do
-    f=".claude/skills/$s/SKILL.md"
+    f=".claude/skills/$s/SKILL.md"; v=""
     [ -f "$f" ] && v="$(ue_fm_get "$f" model)" && [ "$v" = opus ] || fail "$f: model is '${v:-missing}', expected opus"
   done
   for a in "${UE_OPUS_AGENTS[@]}"; do
-    f=".claude/agents/$a.md"
+    f=".claude/agents/$a.md"; v=""
     [ -f "$f" ] && v="$(ue_fm_get "$f" model)" && [ "$v" = opus ] || fail "$f: model is '${v:-missing}', expected opus"
   done
   for a in "${UE_XHIGH_AGENTS[@]}"; do
-    f=".claude/agents/$a.md"
+    f=".claude/agents/$a.md"; v=""
     [ -f "$f" ] && v="$(ue_fm_get "$f" effort)" && [ "$v" = xhigh ] || fail "$f: effort is '${v:-missing}', expected xhigh"
     [ -f "$f" ] && [ "$(awk 'NR==1{next} /^---/{exit} /^effort:/' "$f" | wc -l)" -le 1 ] || fail "$f: more than one effort line"
   done
