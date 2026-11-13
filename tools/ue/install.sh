@@ -211,7 +211,11 @@ if [ "$DRY" -eq 0 ]; then
     echo "ue_version=$UE_VERSION"
     echo "installed=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     for tgt in "${ORDER[@]}"; do printf '%s\t%s\t%s\n' "${NEWKIND[$tgt]}" "$tgt" "${NEWSRC[$tgt]}"; done
-  } > "$STATE"
+  } > "$STAGE/state"
+  # Keep the old file, and its date, when nothing but the date would change.
+  if ! [ -f "$STATE" ] || ! cmp -s <(grep -v '^installed=' "$STATE") <(grep -v '^installed=' "$STAGE/state"); then
+    mkdir -p "$(dirname "$STATE")" && cp "$STAGE/state" "$STATE"
+  fi
 fi
 
 # --- Report ---------------------------------------------------------------------
