@@ -129,6 +129,7 @@ committed `HEAD`, so check out `unreal-engine` and pull first.
 | The framework: `.claude/` (agents, skills, hooks, scripts, rules, docs, genres, engines, `settings.json`), `docs/`, the `CLAUDE.md` files | Added, or updated if you have not changed them. Files you changed are three-way merged with the template's new version; a clash is written with conflict markers and reported (exit 3). Files upstream deleted are removed unless you changed them |
 | `project.yaml`, `technical-preferences.md`, the three registries | Added once, then never touched: your skills write them |
 | `.gitignore`, `.gitattributes` | Your files; a marked CCGS block is added and kept current. The LF rules in it keep the hooks working on Windows |
+| `LICENSE` | Copied as `.claude/CCGS-LICENSE.txt`: the MIT licence asks for its notice in every copy |
 | `README.md`, `CHANGELOG.md`, `UPGRADING.md`, `.github/`, `tools/`, `studio-tests/` | Not copied (`studio-tests/` with `--with-studio-tests`) |
 | Anything it did not install | Never touched: your own skills and agents, `settings.local.json`, agent memory |
 
