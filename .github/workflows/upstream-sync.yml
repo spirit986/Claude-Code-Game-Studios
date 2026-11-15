@@ -1,0 +1,46 @@
+# Keeps the UE-only variant in step with Donchitos's releases.
+#
+# Daily, or from the Run workflow button: fast-forwards main (the exact copy of
+# upstream), and when unreal-engine is behind, merges the release on a
+# sync/<version> branch with tools/ue/sync.sh and opens a pull request into
+# unreal-engine. It never merges: review the pull request and merge it with a
+# merge commit. The logic lives in tools/ue/ci-sync.sh; see
+# .claude/docs/ue-variant.md.
+#
+# Needs: Settings > Actions > General > "Allow GitHub Actions to create and
+# approve pull requests", and no "require a pull request" rule on main.
+# Scheduled runs pause after 60 days without repository activity; re-enable the
+# workflow in the Actions tab if that happens.
+
+name: Upstream sync
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: unreal-engine
+          fetch-depth: 0
+
+      - name: Sync upstream into unreal-engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash tools/ue/ci-sync.sh
