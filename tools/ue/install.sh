@@ -111,9 +111,21 @@ fi
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 unpack() { # commit, folder
-  mkdir -p "$2" && git -C "$TEMPLATE" archive --format=tar "$1" | tar -x -C "$2" \
-    && find "$2" -type f -exec sed -i 's/\r$//' {} +
+  mkdir -p "$2" && git -C "$TEMPLATE" archive --format=tar "$1" | tar -x -C "$2" || return 1
+  # Strip CRs only from text files (grep -I skips binaries), and not from files
+  # the template's attributes keep binary (-text) or CRLF (eol=crlf).
+  local p attrs
+  ( cd "$2" && LC_ALL=C grep -rIlZ $'\r' . 2>/dev/null ) | while IFS= read -r -d '' p; do
+    p="${p#./}"
+    attrs="$(git -C "$TEMPLATE" check-attr text eol -- "$p" 2>/dev/null)"
+    case "$attrs" in *"text: unset"*|*"eol: crlf"*) continue ;; esac
+    sed -i 's/\r$//' "$2/$p"
+  done
+  return 0
 }
+is_text() { [ ! -s "$1" ] || LC_ALL=C grep -Iq . "$1" || ! LC_ALL=C grep -q . "$1"; }
+# A file still holding the conflict markers an earlier run of this script wrote.
+has_markers() { grep -q '^<<<<<<< yours$' "$1" && grep -q '^>>>>>>> template ' "$1"; }
 unpack HEAD "$STAGE/t" || ue_die "could not read the template's HEAD"
 if [ "$HAVEBASE" -eq 1 ]; then unpack "$OLD" "$STAGE/old" || ue_die "could not read the last installed commit $OLD"; fi
 yget() { LC_ALL=C YG_PATH="$1" awk -f "$STAGE/t/.claude/scripts/yaml-get.awk" "$2" 2>/dev/null; }
@@ -162,8 +174,18 @@ for tgt in "${ORDER[@]}"; do
   fi
   if [ "${NEWKIND[$tgt]}" = seed ]; then count yours; continue; fi
   if cmp -s "$T" "$S"; then count unchanged; continue; fi
-  tr -d '\r' < "$T" > "$STAGE/mine"
-  if cmp -s "$STAGE/mine" "$S"; then count unchanged; continue; fi      # differs only in line endings
+  TEXT=0; is_text "$S" && TEXT=1
+  if [ "$TEXT" -eq 1 ]; then
+    tr -d '\r' < "$T" > "$STAGE/mine"
+    if cmp -s "$STAGE/mine" "$S"; then count unchanged; continue; fi    # differs only in line endings
+    if has_markers "$STAGE/mine"; then
+      # Merged with conflicts by an earlier run and not resolved yet: merging it
+      # again would nest the markers, so leave it and keep reporting it.
+      count conflicts; CONFLICTS+=("$tgt (still unresolved from an earlier run)"); continue
+    fi
+  else
+    cp "$T" "$STAGE/mine"                                                 # binary: compared byte for byte
+  fi
   osrc="${OLDSRC[$tgt]:-}"; B="$STAGE/old/$osrc"
   if [ "$HAVEBASE" -eq 1 ] && [ -n "$osrc" ] && [ "${OLDKIND[$tgt]:-}" != deleted ] && [ -f "$B" ]; then
     if cmp -s "$STAGE/mine" "$B"; then                                   # you had not changed it
@@ -171,6 +193,9 @@ for tgt in "${ORDER[@]}"; do
       continue
     fi
     if cmp -s "$S" "$B"; then count yours; continue; fi                   # only you changed it
+    if [ "$TEXT" -eq 0 ]; then
+      ue_warn "$tgt is binary and changed both here and in the template; kept yours"; count skipped; continue
+    fi
     git -C "$TEMPLATE" merge-file -p -L "yours" -L "installed ${OLD:0:9}" -L "template $SHORT" \
       "$STAGE/mine" "$B" "$S" > "$STAGE/merged" 2>/dev/null
     rc=$?
@@ -198,7 +223,13 @@ for tgt in "${!OLDKIND[@]}"; do
   T="$PROJ/$tgt"
   [ -f "$T" ] || continue
   B="$STAGE/old/${OLDSRC[$tgt]}"
-  if [ "$HAVEBASE" -eq 1 ] && [ -f "$B" ] && cmp -s <(tr -d '\r' < "$T") "$B"; then
+  same=1
+  if [ "$HAVEBASE" -eq 1 ] && [ -f "$B" ]; then
+    if is_text "$B"; then cmp -s <(tr -d '\r' < "$T") "$B" || same=0; else cmp -s "$T" "$B" || same=0; fi
+  else
+    same=0
+  fi
+  if [ "$same" -eq 1 ]; then
     if [ "$DRY" -eq 0 ]; then
       if rm -f "$T"; then
         d="$(dirname "$T")"
@@ -335,6 +366,9 @@ if [ "$DRY" -eq 1 ]; then
   echo "Nothing was written. Run again without --dry-run to install."
 elif [ "${#FAILED[@]}" -gt 0 ]; then
   echo "Some files could not be written, so nothing was recorded. Fix the cause (a read-only file, or one open in another program) and run it again; add --yes, since the files it did write are now uncommitted changes." >&2
+  if [ "${#CONFLICTS[@]}" -gt 0 ]; then
+    echo "Resolve the CONFLICTS listed above before that run, or drop the merge with git checkout -- <file>: the retry leaves any file that still has conflict markers alone." >&2
+  fi
   exit 4
 elif git -C "$PROJ" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Review with: git -C \"$PROJ\" status, then commit, .claude/ccgs-install.txt included."
