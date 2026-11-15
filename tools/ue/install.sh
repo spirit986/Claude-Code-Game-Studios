@@ -113,15 +113,19 @@ trap 'rm -rf "$STAGE"' EXIT
 unpack() { # commit, folder
   mkdir -p "$2" && git -C "$TEMPLATE" archive --format=tar "$1" | tar -x -C "$2" || return 1
   # Strip CRs only from text files (grep -I skips binaries), and not from files
-  # the template's attributes keep binary (-text) or CRLF (eol=crlf).
-  local p attrs
-  ( cd "$2" && LC_ALL=C grep -rIlZ $'\r' . 2>/dev/null ) | while IFS= read -r -d '' p; do
-    p="${p#./}"
-    attrs="$(git -C "$TEMPLATE" check-attr text eol -- "$p" 2>/dev/null)"
-    case "$attrs" in *"text: unset"*|*"eol: crlf"*) continue ;; esac
-    sed -i 's/\r$//' "$2/$p"
-  done
-  return 0
+  # the template's attributes keep binary (-text) or CRLF (eol=crlf). One
+  # check-attr and one sed run for all of them: process starts are slow on Windows.
+  local p a v
+  local -A keep=()
+  ( cd "$2" && LC_ALL=C grep -rIlZ $'\r' . 2>/dev/null ) \
+    | while IFS= read -r -d '' p; do printf '%s\0' "${p#./}"; done > "$2.cr"
+  [ -s "$2.cr" ] || { rm -f "$2.cr"; return 0; }
+  while IFS= read -r -d '' p && IFS= read -r -d '' a && IFS= read -r -d '' v; do
+    case "$a=$v" in text=unset|eol=crlf) keep["$p"]=1 ;; esac
+  done < <(git -C "$TEMPLATE" check-attr --stdin -z text eol < "$2.cr")
+  while IFS= read -r -d '' p; do [ -n "${keep[$p]:-}" ] || printf '%s\0' "$p"; done < "$2.cr" > "$2.strip"
+  ( cd "$2" && xargs -0 -r sed -i 's/\r$//' < "$2.strip" )
+  rm -f "$2.cr" "$2.strip"
 }
 is_text() { [ ! -s "$1" ] || LC_ALL=C grep -Iq . "$1" || ! LC_ALL=C grep -q . "$1"; }
 # A file still holding the conflict markers an earlier run of this script wrote.
@@ -159,6 +163,37 @@ count() { N[$1]=$(( ${N[$1]:-0} + 1 )); }
 MERGED=(); CONFLICTS=(); BACKUPS=(); REMOVED=(); KEPT_DELETED=(); YOU_DELETED=(); BLOCKS=(); FAILED=()
 put() { [ "$DRY" -eq 1 ] && return 0; mkdir -p "$(dirname "$2")" && cp "$1" "$2"; }
 failed() { FAILED+=("$1"); count failed; }
+lf() { tr -d '\r' < "$1" > "$2"; }
+
+# Find the unchanged files in a handful of processes, not one or more per file
+# (process starts are slow on Windows): copy the project's installed files once,
+# strip CRs from the text ones as unpack() does, and hash both sides in two git
+# runs. A CRLF checkout of an unchanged file then matches too. Should any step
+# fail, each file falls back to its own comparison below.
+declare -A SAME=()
+HASHED=0; HKEYS=()
+: > "$STAGE/plist"; : > "$STAGE/ppaths"; : > "$STAGE/spaths"
+for tgt in "${ORDER[@]}"; do
+  T="$PROJ/$tgt"
+  [ -f "$T" ] && [ ! -L "$T" ] && [ "${NEWKIND[$tgt]}" != seed ] || continue
+  printf '%s\n' "$tgt" >> "$STAGE/plist"
+  printf '%s\n' "$STAGE/p/$tgt" >> "$STAGE/ppaths"
+  printf '%s\n' "$STAGE/t/${NEWSRC[$tgt]}" >> "$STAGE/spaths"
+  HKEYS+=("$tgt")
+done
+if [ "${#HKEYS[@]}" -gt 0 ] && mkdir -p "$STAGE/p" \
+   && ( cd "$PROJ" && tar -cf - -T "$STAGE/plist" ) | tar -C "$STAGE/p" -xf - 2>/dev/null; then
+  ( cd "$STAGE/p" && LC_ALL=C grep -rIlZ $'\r' . 2>/dev/null | xargs -0 -r sed -i 's/\r$//' )
+  mapfile -t HP < <(git -C "$TEMPLATE" hash-object --no-filters --stdin-paths < "$STAGE/ppaths" 2>/dev/null)
+  mapfile -t HS < <(git -C "$TEMPLATE" hash-object --no-filters --stdin-paths < "$STAGE/spaths" 2>/dev/null)
+  if [ "${#HP[@]}" -eq "${#HKEYS[@]}" ] && [ "${#HS[@]}" -eq "${#HKEYS[@]}" ]; then
+    HASHED=1
+    for i in "${!HKEYS[@]}"; do [ "${HP[$i]}" = "${HS[$i]}" ] && SAME["${HKEYS[$i]}"]=1; done
+  fi
+fi
+# Unchanged: the same bytes, or the same text once CRs are stripped from the
+# project's copy. Without the hashes, a cmp (the main loop then checks the CRs).
+same_bytes() { if [ "$HASHED" -eq 1 ]; then [ -n "${SAME[$1]:-}" ]; else cmp -s "$2" "$3"; fi; }
 
 # --- Add, update or merge ---------------------------------------------------------
 for tgt in "${ORDER[@]}"; do
@@ -173,32 +208,40 @@ for tgt in "${ORDER[@]}"; do
     continue
   fi
   if [ "${NEWKIND[$tgt]}" = seed ]; then count yours; continue; fi
-  if cmp -s "$T" "$S"; then count unchanged; continue; fi
+  if same_bytes "$tgt" "$T" "$S"; then count unchanged; continue; fi
+  # Text is compared and merged with CRs stripped from all three copies (yours,
+  # the base, the template's), so line endings never look like an edit; a file the
+  # template keeps as CRLF is written back as CRLF. Binaries are compared as bytes.
   TEXT=0; is_text "$S" && TEXT=1
+  CRLF=0; [ "$TEXT" -eq 1 ] && grep -q $'\r' "$S" && CRLF=1
   if [ "$TEXT" -eq 1 ]; then
-    tr -d '\r' < "$T" > "$STAGE/mine"
-    if cmp -s "$STAGE/mine" "$S"; then count unchanged; continue; fi    # differs only in line endings
+    lf "$T" "$STAGE/mine"; lf "$S" "$STAGE/theirs"
+    if cmp -s "$STAGE/mine" "$STAGE/theirs"; then count unchanged; continue; fi   # only line endings differ
     if has_markers "$STAGE/mine"; then
       # Merged with conflicts by an earlier run and not resolved yet: merging it
       # again would nest the markers, so leave it and keep reporting it.
       count conflicts; CONFLICTS+=("$tgt (still unresolved from an earlier run)"); continue
     fi
   else
-    cp "$T" "$STAGE/mine"                                                 # binary: compared byte for byte
+    cp "$T" "$STAGE/mine"; cp "$S" "$STAGE/theirs"
   fi
   osrc="${OLDSRC[$tgt]:-}"; B="$STAGE/old/$osrc"
   if [ "$HAVEBASE" -eq 1 ] && [ -n "$osrc" ] && [ "${OLDKIND[$tgt]:-}" != deleted ] && [ -f "$B" ]; then
-    if cmp -s "$STAGE/mine" "$B"; then                                   # you had not changed it
+    if [ "$TEXT" -eq 1 ]; then lf "$B" "$STAGE/base"; else cp "$B" "$STAGE/base"; fi
+    if cmp -s "$STAGE/mine" "$STAGE/base"; then                          # you had not changed it
       if put "$S" "$T"; then count updated; else failed "$tgt"; fi
       continue
     fi
-    if cmp -s "$S" "$B"; then count yours; continue; fi                   # only you changed it
+    if cmp -s "$STAGE/theirs" "$STAGE/base"; then count yours; continue; fi   # only you changed it
     if [ "$TEXT" -eq 0 ]; then
       ue_warn "$tgt is binary and changed both here and in the template; kept yours"; count skipped; continue
     fi
     git -C "$TEMPLATE" merge-file -p -L "yours" -L "installed ${OLD:0:9}" -L "template $SHORT" \
-      "$STAGE/mine" "$B" "$S" > "$STAGE/merged" 2>/dev/null
+      "$STAGE/mine" "$STAGE/base" "$STAGE/theirs" > "$STAGE/merged" 2>/dev/null
     rc=$?
+    if [ "$CRLF" -eq 1 ] && [ "$rc" -ge 0 ] && [ "$rc" -le 127 ]; then
+      sed -i 's/$/\r/' "$STAGE/merged"
+    fi
     if [ "$rc" -eq 0 ]; then
       if put "$STAGE/merged" "$T"; then count merged; MERGED+=("$tgt"); else failed "$tgt"; fi
     elif [ "$rc" -ge 1 ] && [ "$rc" -le 127 ]; then
@@ -225,7 +268,8 @@ for tgt in "${!OLDKIND[@]}"; do
   B="$STAGE/old/${OLDSRC[$tgt]}"
   same=1
   if [ "$HAVEBASE" -eq 1 ] && [ -f "$B" ]; then
-    if is_text "$B"; then cmp -s <(tr -d '\r' < "$T") "$B" || same=0; else cmp -s "$T" "$B" || same=0; fi
+    # Both sides without CRs, as in the main loop, so a CRLF file still matches.
+    if is_text "$B"; then cmp -s <(tr -d '\r' < "$T") <(tr -d '\r' < "$B") || same=0; else cmp -s "$T" "$B" || same=0; fi
   else
     same=0
   fi

@@ -79,21 +79,20 @@ while IFS=$'\t' read -r p m e; do [ -n "$p" ] && { UP_M["$p"]="$m"; UP_E["$p"]="
 while IFS=$'\t' read -r p m e; do [ -n "$p" ] && { IX_M["$p"]="$m"; IX_E["$p"]="$e"; }; done < <(ue_pins --cached)
 
 # What model: and effort: a skill or agent should have: the lib.sh lists first,
-# then upstream's value, then (for a file upstream does not have) its own.
-want_model() {
+# then upstream's value, then (for a file upstream does not have) its own. The
+# answers go to WANT_M and WANT_E, not to stdout: a $(...) per file is a fork per
+# file, and forks are slow on Windows.
+want_pins() {
   local p="$1" n
+  if [ -n "${IN_BASE[$p]:-}" ]; then WANT_M="${UP_M[$p]:-}"; WANT_E="${UP_E[$p]:-}"
+  else WANT_M="${IX_M[$p]:-}"; WANT_E="${IX_E[$p]:-}"; fi
   case "$p" in
-    .claude/skills/*/SKILL.md) n="${p#.claude/skills/}"; n="${n%/SKILL.md}"; in_list "$n" "${UE_OPUS_SKILLS[@]}" && { echo opus; return; } ;;
-    .claude/agents/*.md) n="${p#.claude/agents/}"; n="${n%.md}"; in_list "$n" "${UE_OPUS_AGENTS[@]}" && { echo opus; return; } ;;
+    .claude/skills/*/SKILL.md) n="${p#.claude/skills/}"; n="${n%/SKILL.md}"; in_list "$n" "${UE_OPUS_SKILLS[@]}" && WANT_M=opus ;;
+    .claude/agents/*.md) n="${p#.claude/agents/}"; n="${n%.md}"
+      in_list "$n" "${UE_OPUS_AGENTS[@]}" && WANT_M=opus
+      in_list "$n" "${UE_XHIGH_AGENTS[@]}" && WANT_E=xhigh ;;
   esac
-  if [ -n "${IN_BASE[$p]:-}" ]; then echo "${UP_M[$p]:-}"; else echo "${IX_M[$p]:-}"; fi
-}
-want_effort() {
-  local p="$1" n
-  case "$p" in
-    .claude/agents/*.md) n="${p#.claude/agents/}"; n="${n%.md}"; in_list "$n" "${UE_XHIGH_AGENTS[@]}" && { echo xhigh; return; } ;;
-  esac
-  if [ -n "${IN_BASE[$p]:-}" ]; then echo "${UP_E[$p]:-}"; else echo "${IX_E[$p]:-}"; fi
+  return 0
 }
 
 # --- The edits, applied to upstream's copy of each file --------------------------
@@ -205,12 +204,12 @@ edit_model_tiers() {
   local -a s_opus=() s_haiku=() s_other=() a_opus=() a_sonnet=() a_other=() effort=()
   local s_sonnet=0 a_inherit=0
   for p in "${SKILLS[@]}"; do
-    n="${p#.claude/skills/}"; n="/${n%/SKILL.md}"; m="$(want_model "$p")"; e="$(want_effort "$p")"
+    n="${p#.claude/skills/}"; n="/${n%/SKILL.md}"; want_pins "$p"; m="$WANT_M"; e="$WANT_E"
     case "$m" in opus) s_opus+=("\`$n\`") ;; haiku) s_haiku+=("\`$n\`") ;; sonnet) s_sonnet=$((s_sonnet + 1)) ;; *) s_other+=("\`$n\`: ${m:-no model}") ;; esac
     [ -n "$e" ] && effort+=("\`$n\` \`$e\`")
   done
   for p in "${AGENTS[@]}"; do
-    n="${p#.claude/agents/}"; n="${n%.md}"; m="$(want_model "$p")"; e="$(want_effort "$p")"
+    n="${p#.claude/agents/}"; n="${n%.md}"; want_pins "$p"; m="$WANT_M"; e="$WANT_E"
     case "$m" in opus) a_opus+=("\`$n\`") ;; sonnet) a_sonnet+=("\`$n\`") ;; inherit) a_inherit=$((a_inherit + 1)) ;; *) a_other+=("\`$n\`: ${m:-no model}") ;; esac
     [ -n "$e" ] && effort+=("\`$n\` \`$e\`")
   done
@@ -263,15 +262,27 @@ edit_catalog() {
 
 apply_pins() {
   local x="$1" p="$2"
-  ue_fm_set "$x" model "$(want_model "$p")" && ue_fm_set "$x" effort "$(want_effort "$p")" \
+  want_pins "$p"
+  ue_fm_set "$x" model "$WANT_M" && ue_fm_set "$x" effort "$WANT_E" \
     || fail "$p: upstream's copy has no frontmatter"
 }
 
 # --- Build every overlay file into $STAGE/x ---------------------------------------
-declare -A ABSENT=()
+# Upstream's copies come out of one archive, not one git run per file. With
+# autocrlf off and eol=lf, the archive writes each file as git stores it (the
+# repo's attributes ask for LF on these files anyway).
+declare -A ABSENT=() IN_UP=()
+while IFS= read -r p; do IN_UP["$p"]=1; done < <(git ls-tree -r --name-only "$BASE" -- "${OVERLAY[@]}")
+UPFILES=()
+for p in "${OVERLAY[@]}"; do [ -n "${IN_UP[$p]:-}" ] && UPFILES+=("$p"); done
+mkdir -p "$STAGE/x"
+if [ "${#UPFILES[@]}" -gt 0 ]; then
+  git -c core.autocrlf=false -c core.eol=lf archive --format=tar "$BASE" -- "${UPFILES[@]}" | tar -x -C "$STAGE/x" \
+    || ue_die "could not read upstream $BSHORT's copies of the files convert.sh edits"
+fi
 for p in "${OVERLAY[@]}"; do
-  x="$STAGE/x/$p"; mkdir -p "$(dirname "$x")"
-  if ! git cat-file -e "$BASE:$p" 2>/dev/null; then
+  x="$STAGE/x/$p"
+  if [ -z "${IN_UP[$p]:-}" ]; then
     case "$p" in
       CLAUDE.md|.claude/settings.json|.claude/hooks/update-check.sh|.claude/skills/setup-engine/SKILL.md)
         fail "upstream $BSHORT no longer has $p, which convert.sh must edit: update tools/ue/convert.sh" ;;
@@ -282,7 +293,6 @@ for p in "${OVERLAY[@]}"; do
     ABSENT["$p"]=1
     continue
   fi
-  git show "$BASE:$p" > "$x"
   case "$p" in
     CLAUDE.md) edit_claude_md "$x" ;;
     README.md) edit_readme "$x" ;;
@@ -299,17 +309,26 @@ for p in "${OVERLAY[@]}"; do
   case "$p" in .claude/skills/*/SKILL.md|.claude/agents/*.md) apply_pins "$x" "$p" ;; esac
 done
 
-# Overlay files whose staged blob differs from what was just built.
+# Overlay files whose staged blob differs from what was just built: one
+# hash-object and one ls-files for all of them.
 differing() {
-  local p want have
+  local p i mode sha stage path
+  local -A have=() want=()
+  local -a built=()
+  while read -r mode sha stage path; do
+    [ "$stage" = 0 ] && have["$path"]="$sha"
+  done < <(git ls-files -s -- "${OVERLAY[@]}")
+  for p in "${OVERLAY[@]}"; do [ -z "${ABSENT[$p]:-}" ] && built+=("$p"); done
+  if [ "${#built[@]}" -gt 0 ]; then
+    mapfile -t sums < <(for p in "${built[@]}"; do printf '%s\n' "$STAGE/x/$p"; done | git hash-object --no-filters --stdin-paths)
+    for i in "${!built[@]}"; do want["${built[$i]}"]="${sums[$i]:-}"; done
+  fi
   for p in "${OVERLAY[@]}"; do
     if [ -n "${ABSENT[$p]:-}" ]; then
-      git ls-files --error-unmatch -- "$p" >/dev/null 2>&1 && printf '%s\n' "$p"
+      [ -n "${have[$p]:-}" ] && printf '%s\n' "$p"
       continue
     fi
-    want="$(git hash-object --no-filters "$STAGE/x/$p")"
-    have="$(git rev-parse -q --verify ":$p" 2>/dev/null)"
-    [ "$want" = "$have" ] || printf '%s\n' "$p"
+    [ -n "${want[$p]:-}" ] && [ "${want[$p]}" = "${have[$p]:-}" ] || printf '%s\n' "$p"
   done
 }
 
