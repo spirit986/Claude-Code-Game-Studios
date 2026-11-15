@@ -313,9 +313,12 @@ done
 # hash-object and one ls-files for all of them.
 differing() {
   local p i mode sha stage path
-  local -A have=() want=()
+  local -A have=() want=() tracked=()
   local -a built=()
+  # Stage 0 is the resolved blob; any stage means the index still has the path
+  # (an upstream deletion in conflict, say, which then needs its git rm).
   while read -r mode sha stage path; do
+    tracked["$path"]=1
     [ "$stage" = 0 ] && have["$path"]="$sha"
   done < <(git ls-files -s -- "${OVERLAY[@]}")
   for p in "${OVERLAY[@]}"; do [ -z "${ABSENT[$p]:-}" ] && built+=("$p"); done
@@ -325,7 +328,7 @@ differing() {
   fi
   for p in "${OVERLAY[@]}"; do
     if [ -n "${ABSENT[$p]:-}" ]; then
-      [ -n "${have[$p]:-}" ] && printf '%s\n' "$p"
+      [ -n "${tracked[$p]:-}" ] && printf '%s\n' "$p"
       continue
     fi
     [ -n "${want[$p]:-}" ] && [ "${want[$p]}" = "${have[$p]:-}" ] || printf '%s\n' "$p"
