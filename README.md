@@ -1,4 +1,4 @@
-> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md).
+> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. Counts, model tiers and engine lists below describe upstream; this variant has 39 agents and is Unreal only. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md).
 
 <p align="center">
   <h1 align="center">Claude Code Game Studios</h1>

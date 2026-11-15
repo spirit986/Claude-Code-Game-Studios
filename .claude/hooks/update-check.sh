@@ -117,7 +117,7 @@ update_check_notice() {
   fi
 
   if [ -n "$latest" ] && _update_check_newer "$latest" "$UPDATE_CHECK_VERSION"; then
-    echo "Update: Claude Code Game Studios $latest is out (this project has $UPDATE_CHECK_VERSION). What changed and how to upgrade: https://github.com/$UPDATE_CHECK_REPO/releases/latest — to stop this notice: /settings --local updates.check=false"
+    echo "Update: Claude Code Game Studios $latest is out (this project has $UPDATE_CHECK_VERSION). This project uses the UE-only variant: update it from https://github.com/spirit986/Claude-Code-Game-Studios (merge the release's sync pull request there, then run tools/ue/install.sh), not with upstream's UPGRADING steps — to stop this notice: /settings --local updates.check=false"
   fi
   return 0
 }
