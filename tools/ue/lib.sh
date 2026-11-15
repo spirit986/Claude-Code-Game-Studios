@@ -49,6 +49,10 @@ UE_VARIANT_REPO="${UE_VARIANT_REPO:-spirit986/Claude-Code-Game-Studios}"
 # Donchitos's repository, and the local ref that mirrors it.
 UE_UPSTREAM_URL="${UE_UPSTREAM_URL:-https://github.com/Donchitos/Claude-Code-Game-Studios.git}"
 UE_MIRROR_REF="${UE_MIRROR_REF:-origin/main}"
+# The upstream commit the converted files were last built from. convert.sh
+# writes it and reads it first, so a stale origin/main cannot make it rebuild
+# from an older release.
+UE_BASE_FILE="tools/ue/upstream-base"
 
 # ---------------------------------------------------------------------------
 # Every upstream file convert.sh edits. It rebuilds each one from upstream's

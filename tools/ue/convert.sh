@@ -37,13 +37,18 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+RECORDED=""
+[ -f "$UE_BASE_FILE" ] && RECORDED="$(tr -d '\r' < "$UE_BASE_FILE" | awk 'NF && !/^#/ { print $1; exit }')"
 if [ -z "$BASE" ]; then
   if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
     BASE=MERGE_HEAD
+  elif [ -n "$RECORDED" ] && git merge-base --is-ancestor "$RECORDED" HEAD 2>/dev/null; then
+    BASE="$RECORDED"
   elif git rev-parse -q --verify "$UE_MIRROR_REF^{commit}" >/dev/null; then
+    [ -n "$RECORDED" ] && ue_warn "$UE_BASE_FILE names $RECORDED, which HEAD does not contain; using the merge base with $UE_MIRROR_REF"
     BASE="$(git merge-base HEAD "$UE_MIRROR_REF")" || ue_die "HEAD and $UE_MIRROR_REF share no history"
   else
-    ue_die "cannot tell which upstream release to build from: $UE_MIRROR_REF is missing. Run git fetch origin main, or pass --base <commit>."
+    ue_die "cannot tell which upstream release to build from: no $UE_BASE_FILE and no $UE_MIRROR_REF. Run git fetch origin main, or pass --base <commit>."
   fi
 fi
 BASE="$(git rev-parse -q --verify "$BASE^{commit}")" || ue_die "unknown commit: $BASE"
@@ -337,6 +342,11 @@ if [ "$MODE" = convert ]; then
     ue_fm_set "$STAGE/pin" model "${UP_M[$p]:-}" && ue_fm_set "$STAGE/pin" effort "${UP_E[$p]:-}" \
       && cp "$STAGE/pin" "$p" && git add -- "$p" || fail "could not reset the model/effort lines of $p"
   done
+  if [ "$RECORDED" != "$BASE" ]; then
+    { echo "# The upstream commit tools/ue/convert.sh last built from. Written by convert.sh."
+      echo "$BASE $(git describe --tags --always "$BASE" 2>/dev/null)"; } > "$UE_BASE_FILE" \
+      && git add -- "$UE_BASE_FILE" || fail "could not write $UE_BASE_FILE"
+  fi
   printf 'convert: built %s edited file(s) from upstream %s; removed %s Godot/Unity file(s); rewrote %s; reset %s stale pin(s)\n' \
     "${#OVERLAY[@]}" "$BSHORT" "$DELETED" "${#DIFF[@]}" "${#STALE[@]}"
   mapfile -t DIFF < <(differing)
