@@ -334,7 +334,7 @@ list "FAILED to write:" "${FAILED[@]}"
 if [ "$DRY" -eq 1 ]; then
   echo "Nothing was written. Run again without --dry-run to install."
 elif [ "${#FAILED[@]}" -gt 0 ]; then
-  echo "Some files could not be written, so nothing was recorded. Fix the cause (a read-only file, or one open in another program) and run it again." >&2
+  echo "Some files could not be written, so nothing was recorded. Fix the cause (a read-only file, or one open in another program) and run it again; add --yes, since the files it did write are now uncommitted changes." >&2
   exit 4
 elif git -C "$PROJ" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Review with: git -C \"$PROJ\" status, then commit, .claude/ccgs-install.txt included."
