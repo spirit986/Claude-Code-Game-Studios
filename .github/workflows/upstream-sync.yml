@@ -1,4 +1,4 @@
-# Keeps the UE-only variant in step with Donchitos's releases.
+# Keeps the UE-only variant in step with upstream's releases.
 #
 # Daily, or from the Run workflow button: fast-forwards main (the exact copy of
 # upstream), and when unreal-engine is behind, merges the release on a

@@ -4,7 +4,7 @@
 #   bash tools/ue/sync.sh [--no-commit] [--force] [<upstream-ref>]
 #
 # <upstream-ref> is what to merge: by default origin/main, this fork's exact copy
-# of Donchitos's main. Run it on unreal-engine, or a branch made from it, with no
+# of upstream's main. Run it on unreal-engine, or a branch made from it, with no
 # uncommitted changes. It merges, rebuilds every file convert.sh edits from the
 # new upstream's copy (which also resolves their conflicts), deletes the
 # Godot/Unity files upstream added or changed, and commits the merge.

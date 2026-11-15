@@ -1,6 +1,6 @@
 # UE-only variant
 
-This is Claude Code Game Studios with Unreal Engine only: Donchitos's template
+This is Claude Code Game Studios with Unreal Engine only: the upstream template (credited in `README.md`)
 with the Godot and Unity parts removed, `/setup-engine` defaulting to Unreal
 Engine 5.8, and its own model and effort tiers. Upstream releases arrive as pull
 requests, and `tools/ue/install.sh` copies the result into your UE project.
@@ -9,7 +9,7 @@ requests, and `tools/ue/install.sh` copies the result into your UE project.
 
 | Branch | Holds | Changed by |
 |---|---|---|
-| `main` | An exact copy of Donchitos's `main` | Only the Upstream sync workflow, by fast-forward |
+| `main` | An exact copy of upstream's `main` | Only the Upstream sync workflow, by fast-forward |
 | `unreal-engine` (default) | The UE-only variant | Pull requests: upstream syncs and your own changes |
 
 - Never commit to `main`, and never merge `unreal-engine` into it.
@@ -28,8 +28,12 @@ requests, and `tools/ue/install.sh` copies the result into your UE project.
 **Removed:** the 10 Godot and Unity agents, `docs/engine-reference/godot/` and
 `unity/`, their test specs in `studio-tests/agents/engine/`,
 `.claude/scripts/godot-parse-check.gd`,
-`.claude/skills/setup-engine/references/godot-language-config.md` and
-`production/.gdignore`. The list is `UE_DENY` in `tools/ue/lib.sh`.
+`.claude/skills/setup-engine/references/godot-language-config.md`,
+`production/.gdignore` and `SECURITY.md` (it sends reports upstream). Also
+everything upstream keeps under `.github/`: its code owners, funding button,
+issue and pull-request templates, and any workflow it adds later. Only this
+variant's own files there stay (`UE_OWN_GITHUB`). The list is `UE_DENY` in
+`tools/ue/lib.sh`.
 
 **Kept:** the Web engine. `/prototype`, `/start` and `/setup-engine` are built
 around it. `install.sh` sets `engine.name: Unreal` in a project that has no
@@ -49,7 +53,12 @@ branch last merged, then edited:
 | `.claude/docs/agent-roster.md` | The Godot and Unity agents removed |
 | `director-gates/lp-*.md`, the `lead-programmer` test spec | `lead-programmer` on Opus |
 | `studio-tests/catalog.yaml` | The deleted agents' entries removed |
-| `README.md` | A banner: the counts and lists below it describe upstream |
+| `UPGRADING.md` | Its upgrade strategies, which merge upstream into a project, replaced by a pointer to `install.sh`; the release sections stay |
+| `UPGRADING.md`, `CHANGELOG.md` | Links to upstream's issues become plain "upstream #N" references |
+
+**Generated:** `README.md`, from `tools/ue/variant-readme.md`: what this variant
+is, how to install and update it, and the credit to the upstream author. Edit
+the template, never `README.md`.
 
 **Added:** `tools/ue/`, `.github/workflows/upstream-sync.yml` and this file.
 
@@ -90,7 +99,7 @@ upstream.
 ## Syncing with upstream
 
 The **Upstream sync** workflow runs daily and from the Actions tab's *Run
-workflow* button. It fast-forwards `main` to Donchitos's `main`, and if
+workflow* button. It fast-forwards `main` to upstream's `main`, and if
 `unreal-engine` is behind, merges the release on a `sync/<version>` branch with
 `tools/ue/sync.sh` and opens a pull request. It never merges.
 
@@ -130,7 +139,7 @@ trying the release and failing.
 - GitHub pauses a scheduled workflow after 60 days without repository activity.
   Upstream has gone longer than that between releases; re-enable the workflow in
   the Actions tab when it happens.
-- If Donchitos ever adds a file under `.github/workflows/`, the workflow's token
+- If upstream ever adds a file under `.github/workflows/`, the workflow's token
   cannot push it to `main`. Update `main` yourself (`git fetch upstream`, then
   `git push origin upstream/main:main`), or give the workflow a fine-grained
   token with Workflows write access.

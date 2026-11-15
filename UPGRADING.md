@@ -35,144 +35,7 @@ of the template to the next.
 
 ## Upgrade Strategies
 
-There are four ways to pull in template updates. Choose based on how your
-repo is set up.
-
-### Strategy A — Git Remote Merge (recommended)
-
-Best when: you cloned the template and have your own commits on top of it —
-your repo shares history with the template.
-
-```bash
-# Add the template as a remote (one-time setup; skip this if `git remote -v` already lists template)
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-
-# Fetch the new version and its release tag
-git fetch --tags template main
-
-# Merge into your branch
-git merge template/main
-```
-
-Git will flag conflicts only in files that both the template *and* you have
-changed. Resolve each one — your game content goes in, structural improvements
-come along for the ride. Then commit the merge.
-
-**Tip:** The files most likely to conflict are `CLAUDE.md`, `project.yaml`, and
-`.claude/docs/technical-preferences.md`, because you've filled them in with
-your engine and project settings. Keep your content; accept the structural changes.
-
-**If git refuses with `fatal: refusing to merge unrelated histories`**, your
-repo did not start as a clone of the template (zip download, `git init` from
-scratch). Do **not** force it with `--allow-unrelated-histories` — with no
-common ancestor, git flags *every* template file as a conflict and you'll be
-resolving hundreds of files by hand. Use Strategy A2 instead.
-
-### Strategy A2 — Selective checkout (no shared history)
-
-Best when: your repo has no common history with the template but you do use git.
-
-> **First, check whether you have edited any framework files.** The checkout
-> below **replaces** everything under `.claude/`. Files *you added* survive, but
-> your edits to files the framework also ships are overwritten — agent
-> definitions and director gates are the ones people customise most.
->
-> ```bash
-> git log --oneline -- .claude    # commits here mean you have customisations
-> ```
->
-> If that lists anything beyond your initial import, work through the restore
-> step below rather than skipping it.
-
-```bash
-# One-time setup; skip it if `git remote -v` already lists template
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-git fetch template main
-
-# Take the framework-owned paths wholesale from the new version.
-# This overwrites/adds template files but never deletes files you added.
-git checkout template/main -- .claude UPGRADING.md CHANGELOG.md docs/migration-guide-v1.1.md
-
-# The checkout is STAGED, not committed — so nothing is lost yet, and this
-# lists every framework file it changed:
-git diff --cached --stat -- .claude
-
-# Restore any file whose local edits you want to keep. This is one command per
-# file, deliberately: each is a decision between your version and the new one.
-git checkout HEAD -- .claude/docs/technical-preferences.md   # v1.0 config; v1.1 keeps config in project.yaml
-git checkout HEAD -- <any other file you customised>
-
-git status   # review what changed before committing
-```
-
-> **Restoring a file keeps your version of it in full — including whatever the
-> new release changed there.** For a file you edited lightly, it is usually
-> better to take the new version and re-apply your change on top than to keep
-> the old one wholesale. `git diff HEAD template/main -- <file>` shows what you
-> would be giving up.
-
-For `CLAUDE.md`, don't checkout — diff and merge by hand, keeping your
-engine/project content:
-
-```bash
-git diff HEAD template/main -- CLAUDE.md
-```
-
-`project.yaml` depends on where you are coming from, and the two cases need
-opposite actions:
-
-- **Upgrading from v1.0** (the case this section is about): you have no
-  `project.yaml` — it did not exist in v1.0. There is nothing to merge by hand,
-  and the checkout above deliberately does not fetch it. Build it from your
-  legacy files instead, which is what the converter is for:
-
-  ```bash
-  bash .claude/scripts/migrate-v1-config.sh --dry-run   # preview
-  bash .claude/scripts/migrate-v1-config.sh             # writes project.yaml
-  ```
-
-  If you skip this, `detect-gaps.sh` will nudge you at the next session start —
-  but do it here rather than discovering it later.
-
-- **Upgrading from v1.1 or later:** you already have a `project.yaml` holding
-  your settings. Treat it like `CLAUDE.md` — diff and merge by hand, never
-  checkout, or you will overwrite your own configuration:
-
-  ```bash
-  git diff HEAD template/main -- project.yaml
-  ```
-
----
-
-### Strategy B — Cherry-pick specific commits
-
-Best when: you only want one specific feature (e.g., just the new skill, not
-the full update).
-
-```bash
-# One-time setup; skip it if `git remote -v` already lists template
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-git fetch template main
-
-# Cherry-pick the specific commit(s) you want
-git cherry-pick <commit-sha>
-```
-
-Commit SHAs for each version are listed in the version sections below.
-
----
-
-### Strategy C — Manual file copy
-
-Best when: you didn't use git to set up the template (just downloaded a zip).
-
-1. Download or clone the new version alongside your repo.
-2. Copy the files listed under **"Safe to overwrite"** directly — except any
-   file the list marks as yours, such as `.claude/docs/technical-preferences.md`.
-3. For files under **"Merge carefully"**, open both versions side-by-side
-   and manually merge the structural changes while keeping your content.
-
----
+This is the UE-only variant. Update a project with `tools/ue/install.sh`, as `.claude/docs/ue-variant.md` describes, not with the strategies upstream gives here: merging upstream into a project brings back the Godot and Unity files and undoes the variant's changes. The release sections below still list what each release changed and the one-off steps to take after installing it.
 
 ## v1.2.0 → v1.3.0
 
@@ -901,7 +764,7 @@ for this release.
 
 **Released:** 2026-09-24
 **Commit range:** `d056997..v1.1.1`
-**Key themes:** Fix for skills and agents failing to start outside auto mode ([#128](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/128))
+**Key themes:** Fix for skills and agents failing to start outside auto mode (upstream #128)
 
 ### What Changed
 

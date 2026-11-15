@@ -11,7 +11,9 @@
 # to the merge in progress (MERGE_HEAD), else to the merge base of HEAD and
 # $UE_MIRROR_REF (origin/main): the upstream release this branch last merged.
 #
-# It also deletes the paths in UE_DENY, and keeps the model: and effort: lines
+# It also deletes the paths in UE_DENY and everything upstream keeps under
+# .github/ (but not UE_OWN_GITHUB), generates README.md from
+# tools/ue/variant-readme.md, and keeps the model: and effort: lines
 # of every skill and agent outside the lib.sh lists equal to upstream's, so a
 # pin removed from lib.sh does not linger.
 #
@@ -130,11 +132,47 @@ edit_claude_md() {
   fi
 }
 
+# The README is this variant's own, generated from tools/ue/variant-readme.md;
+# upstream's README (its install steps, links and sponsor badges) is not used.
 edit_readme() {
   local x="$1"
-  # At the very top: upstream's README opens with an HTML block, not a heading.
-  BANNER="> **UE-only variant.** Godot and Unity are removed, and upstream releases arrive as pull requests. Counts, model tiers and engine lists below describe upstream; this variant has $AGENT_COUNT agents and is Unreal only. See [.claude/docs/ue-variant.md](.claude/docs/ue-variant.md)." \
-  awk 'NR == 1 { print ENVIRON["BANNER"]; print "" } { print }' "$x" > "$x.t" && mv "$x.t" "$x"
+  [ -f "$UE_README_TEMPLATE" ] || { fail "$UE_README_TEMPLATE is missing"; return; }
+  # Count skills as upstream does: a shim kept for a renamed skill ("Old name
+  # of /x") is not a skill of its own.
+  local shims
+  shims="$(git grep -l --cached -E '^description: "Old name of /' -- '.claude/skills/*/SKILL.md' 2>/dev/null | wc -l)"
+  UEV_AGENTS="$AGENT_COUNT" UEV_SKILLS="$(( ${#SKILLS[@]} - shims ))" UEV_UE_VERSION="$UE_VERSION" \
+  UEV_VARIANT_REPO="$UE_VARIANT_REPO" UEV_UPSTREAM_WEB="$UE_UPSTREAM_WEB" UEV_UPSTREAM_OWNER="$UE_UPSTREAM_OWNER" \
+    ue_fill_template "$UE_README_TEMPLATE" "$x" || fail "could not generate README.md"
+  grep -q '{{' "$x" && fail "README.md: a {{placeholder}} in $UE_README_TEMPLATE has no value"
+}
+
+# Upstream's own issue links become plain "upstream #N" references.
+unlink_upstream_issues() {
+  local x="$1" re
+  re="$(printf '%s' "$UE_UPSTREAM_WEB" | sed -E 's#[.[\*^$()+?{|/]#\\&#g')"
+  sed -i -E "s#\[\#([0-9]+)\]\($re/(issues|pull|discussions)/[0-9]+\)#upstream \#\1#g" "$x"
+}
+
+edit_upgrading() {
+  local x="$1"
+  # The release sections stay: they list each release's changes and one-off
+  # steps. The strategies section says to merge upstream into a project, which
+  # would bring Godot and Unity back, so it points at install.sh instead.
+  if grep -q '^## Upgrade Strategies' "$x"; then
+    TEXT="This is the UE-only variant. Update a project with \`tools/ue/install.sh\`, as \`.claude/docs/ue-variant.md\` describes, not with the strategies upstream gives here: merging upstream into a project brings back the Godot and Unity files and undoes the variant's changes. The release sections below still list what each release changed and the one-off steps to take after installing it." \
+    awk '
+      /^## Upgrade Strategies/ { print; print ""; print ENVIRON["TEXT"]; print ""; skip = 1; next }
+      skip && /^## / { skip = 0 }
+      !skip { print }' "$x" > "$x.t" && mv "$x.t" "$x"
+  else
+    ue_warn "UPGRADING.md: the '## Upgrade Strategies' heading changed upstream; left as it is"
+  fi
+  unlink_upstream_issues "$x"
+}
+
+edit_changelog() {
+  unlink_upstream_issues "$1"
 }
 
 edit_settings() {
@@ -147,7 +185,7 @@ edit_settings() {
 
 edit_update_check() {
   local x="$1"
-  # The version check still watches Donchitos (the earliest signal of a release);
+  # The version check still watches upstream (the earliest signal of a release);
   # the hint now sends an installed project to this variant's process.
   ue_replace_text "$x" \
     'What changed and how to upgrade: https://github.com/$UPDATE_CHECK_REPO/releases/latest' \
@@ -282,7 +320,8 @@ if [ "${#UPFILES[@]}" -gt 0 ]; then
 fi
 for p in "${OVERLAY[@]}"; do
   x="$STAGE/x/$p"
-  if [ -z "${IN_UP[$p]:-}" ]; then
+  # README.md is generated, so it does not need upstream's copy.
+  if [ -z "${IN_UP[$p]:-}" ] && [ "$p" != README.md ]; then
     case "$p" in
       CLAUDE.md|.claude/settings.json|.claude/hooks/update-check.sh|.claude/skills/setup-engine/SKILL.md)
         fail "upstream $BSHORT no longer has $p, which convert.sh must edit: update tools/ue/convert.sh" ;;
@@ -296,6 +335,8 @@ for p in "${OVERLAY[@]}"; do
   case "$p" in
     CLAUDE.md) edit_claude_md "$x" ;;
     README.md) edit_readme "$x" ;;
+    UPGRADING.md) edit_upgrading "$x" ;;
+    CHANGELOG.md) edit_changelog "$x" ;;
     .claude/settings.json) edit_settings "$x" ;;
     .claude/hooks/update-check.sh) edit_update_check "$x" ;;
     .claude/skills/setup-engine/SKILL.md) edit_setup_engine "$x" ;;
@@ -349,9 +390,17 @@ stale_pins() {
 mapfile -t DIFF < <(differing)
 mapfile -t STALE < <(stale_pins)
 
+# Everything upstream keeps under .github/ goes too (its code owners, funding,
+# issue and pull-request templates, and any workflow it adds); this variant's
+# own files there (UE_OWN_GITHUB) stay.
+DENY=("${UE_DENY[@]}")
+while IFS= read -r p; do
+  in_list "$p" "${UE_OWN_GITHUB[@]}" || DENY+=("$p")
+done < <(git ls-tree -r --name-only "$BASE" -- .github)
+
 if [ "$MODE" = convert ]; then
-  DELETED="$(git ls-files -- "${UE_DENY[@]}" | sort -u | wc -l)"
-  [ "$DELETED" -eq 0 ] || git rm -r -q -f --ignore-unmatch -- "${UE_DENY[@]}" >/dev/null || fail "could not delete the Godot/Unity paths"
+  DELETED="$(git ls-files -- "${DENY[@]}" | sort -u | wc -l)"
+  [ "$DELETED" -eq 0 ] || git rm -r -q -f --ignore-unmatch -- "${DENY[@]}" >/dev/null || fail "could not delete the removed paths"
   for p in "${DIFF[@]}"; do
     if [ -n "${ABSENT[$p]:-}" ]; then
       git rm -q -f -- "$p" >/dev/null || fail "could not remove $p"
@@ -369,15 +418,15 @@ if [ "$MODE" = convert ]; then
       echo "$BASE $(git describe --tags --always "$BASE" 2>/dev/null)"; } > "$UE_BASE_FILE" \
       && git add -- "$UE_BASE_FILE" || fail "could not write $UE_BASE_FILE"
   fi
-  printf 'convert: built %s edited file(s) from upstream %s; removed %s Godot/Unity file(s); rewrote %s; reset %s stale pin(s)\n' \
+  printf 'convert: built %s edited file(s) from upstream %s; removed %s file(s) the variant drops; rewrote %s; reset %s stale pin(s)\n' \
     "${#OVERLAY[@]}" "$BSHORT" "$DELETED" "${#DIFF[@]}" "${#STALE[@]}"
   mapfile -t DIFF < <(differing)
   STALE=()
 fi
 
 # --- Checks ------------------------------------------------------------------------
-left="$(git ls-files -- "${UE_DENY[@]}" | sort -u)"
-[ -z "$left" ] || fail "Godot/Unity paths are still tracked: $(printf '%s ' $left | cut -c1-300)"
+left="$(git ls-files -- "${DENY[@]}" | sort -u)"
+[ -z "$left" ] || fail "paths the variant drops are still tracked: $(printf '%s ' $left | cut -c1-300)"
 if [ "${#DIFF[@]}" -gt 0 ]; then
   fail "these differ from what convert.sh builds from upstream $BSHORT: ${DIFF[*]}"
   echo "  If you changed lib.sh or convert.sh, run bash tools/ue/convert.sh and commit." >&2

@@ -30,8 +30,12 @@ UE_SPECIALIST_UI="ue-umg-specialist"
 UE_SPECIALIST_ADDITIONAL=(ue-gas-specialist ue-blueprint-specialist ue-replication-specialist)
 
 # Paths the variant removes: the Godot and Unity agents, references, test specs
-# and helpers. Web stays: /prototype, /start and /setup-engine are built around
-# it, and install.sh sets engine.name to Unreal so those skills take the engine route.
+# and helpers, and upstream's security policy, which sends reports upstream.
+# Web stays: /prototype, /start and /setup-engine are built around it, and
+# install.sh sets engine.name to Unreal so those skills take the engine route.
+# convert.sh also removes every file upstream keeps under .github/ (its code
+# owners, funding, issue and pull-request templates, and any workflow it adds);
+# only this variant's own files there stay.
 UE_DENY=(
   '.claude/agents/godot-*'
   '.claude/agents/unity-*'
@@ -42,12 +46,20 @@ UE_DENY=(
   '.claude/scripts/godot-parse-check.gd'
   '.claude/skills/setup-engine/references/godot-language-config.md'
   'production/.gdignore'
+  'SECURITY.md'
 )
+# This variant's own files under .github/, which the .github/ rule above keeps.
+UE_OWN_GITHUB=(.github/workflows/upstream-sync.yml)
 
-# This variant's repository, named in the update notice installed projects see.
+# This variant's repository, named in the README and the update notice.
 UE_VARIANT_REPO="${UE_VARIANT_REPO:-spirit986/Claude-Code-Game-Studios}"
-# Donchitos's repository, and the local ref that mirrors it.
+# The upstream repository, and the local ref that mirrors it. The README's credit
+# and the release-notes links are derived from this one URL.
 UE_UPSTREAM_URL="${UE_UPSTREAM_URL:-https://github.com/Donchitos/Claude-Code-Game-Studios.git}"
+UE_UPSTREAM_WEB="$(printf '%s' "$UE_UPSTREAM_URL" | sed -E 's#\.git$##; s#^git@github\.com:#https://github.com/#')"
+UE_UPSTREAM_OWNER="$(printf '%s' "$UE_UPSTREAM_WEB" | sed -E 's#^https://github\.com/([^/]+)/.*#\1#')"
+# The README is generated from this template, not from upstream's README.
+UE_README_TEMPLATE="tools/ue/variant-readme.md"
 UE_MIRROR_REF="${UE_MIRROR_REF:-origin/main}"
 # The upstream commit the converted files were last built from. convert.sh
 # writes it and reads it first, so a stale origin/main cannot make it rebuild
@@ -64,6 +76,8 @@ ue_overlay_files() {
   printf '%s\n' \
     CLAUDE.md \
     README.md \
+    UPGRADING.md \
+    CHANGELOG.md \
     .claude/settings.json \
     .claude/hooks/update-check.sh \
     .claude/skills/setup-engine/SKILL.md \
@@ -123,6 +137,21 @@ ue_fm_set() {
       fm = 0; print; next }
     { print }
   ' "$f" > "$f.ue-tmp" && mv "$f.ue-tmp" "$f"
+}
+
+# Fill a template: every {{NAME}} becomes the value of the environment variable
+# UEV_NAME, as literal text.
+ue_fill_template() {
+  awk '
+    BEGIN { for (k in ENVIRON) if (k ~ /^UEV_/) val["{{" substr(k, 5) "}}"] = ENVIRON[k] }
+    {
+      for (t in val) {
+        out = ""; s = $0
+        while ((i = index(s, t)) > 0) { out = out substr(s, 1, i - 1) val[t]; s = substr(s, i + length(t)) }
+        $0 = out s
+      }
+      print
+    }' "$1" > "$2"
 }
 
 # Replace the first line matching an extended regex with literal text.
