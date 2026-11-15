@@ -94,8 +94,12 @@ workflow* button. It fast-forwards `main` to Donchitos's `main`, and if
 `unreal-engine` is behind, merges the release on a `sync/<version>` branch with
 `tools/ue/sync.sh` and opens a pull request. It never merges.
 
-- **One sync pull request at a time.** A newer release closes the older open sync
-  pull request as superseded; the new one contains both.
+- **One sync pull request at a time.** A newer release closes the older sync
+  pull request the workflow opened as superseded; the new one contains both. A
+  sync pull request you opened yourself is never closed: the new one names it.
+- **An open `sync/*` pull request that already contains the release covers it**,
+  whatever its branch is called, so a manual sync on `sync/manual` stops the
+  workflow from syncing that release again.
 - **A pull request you close without merging** turns that version down: the
   workflow skips it while its branch exists. Reopen the pull request, or delete
   the branch to get a fresh one.
@@ -119,6 +123,9 @@ git commit
 git push -u origin sync/manual
 gh pr create --repo spirit986/Claude-Code-Game-Studios --base unreal-engine --fill
 ```
+
+Open the pull request as soon as you push: until it is open, the daily run keeps
+trying the release and failing.
 
 - GitHub pauses a scheduled workflow after 60 days without repository activity.
   Upstream has gone longer than that between releases; re-enable the workflow in

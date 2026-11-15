@@ -7,13 +7,14 @@
 # 1. Fast-forwards origin/main to Donchitos's main (UE_UPSTREAM_URL). main must
 #    stay an exact copy: if it has commits of its own, this stops.
 # 2. Stops if unreal-engine already contains main: nothing to sync.
-# 3. Looks at the open sync pull requests. One already open for this version:
-#    nothing to do. One for this version closed without merging while its
-#    branch still exists: skipped, since you turned it down (delete the branch to
-#    get a fresh one).
+# 3. Looks at the open sync/* pull requests. One whose branch already contains
+#    the release (a manual sync on sync/manual included): nothing to do. One for
+#    this version closed without merging while its branch still exists: skipped,
+#    since you turned it down (delete the branch to get a fresh one).
 # 4. Otherwise merges the release with sync.sh on sync/<version> in a temporary
 #    worktree, pushes it and opens a pull request into unreal-engine, then closes
-#    older open sync pull requests as superseded. It never merges.
+#    the older sync pull requests this workflow opened as superseded. Ones a
+#    person opened are left open and named. It never merges.
 #
 # --dry-run  push nothing, open or close no pull request, leave no branch behind
 # --no-pr    push, but print the pull-request command; no pull-request lookups
@@ -86,15 +87,21 @@ git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1 && BRANCH_EXISTS=
 # --- 3. Pull-request state ----------------------------------------------------------
 OPEN=""
 if [ "$USE_GH" -eq 1 ]; then
-  OPEN="$(gh pr list --repo "$REPO" --state open --base "$BASE_BRANCH" --json number,headRefName \
-          --jq '.[] | select(.headRefName | startswith("sync/")) | "\(.number)\t\(.headRefName)"')" \
+  # number, head branch, and whether this workflow opened it (bot) or a person did.
+  OPEN="$(gh pr list --repo "$REPO" --state open --base "$BASE_BRANCH" --json number,headRefName,author \
+          --jq '.[] | select(.headRefName | startswith("sync/"))
+                | "\(.number)\t\(.headRefName)\t\(if (.author.is_bot // false) or ((.author.login // "") | test("github-actions")) then "bot" else "person" end)"')" \
     || ue_die "could not list pull requests in $REPO"
-  N="$(printf '%s\n' "$OPEN" | awk -F'\t' -v b="$BR" '$2 == b { print $1; exit }')"
-  if [ -n "$N" ]; then
-    echo "ci-sync: pull request #$N for upstream $VER is already open"
-    summary "Pull request #$N for upstream $VER is already open."
-    exit 0
-  fi
+  # Any open sync pull request whose branch already contains the release covers it,
+  # whatever its branch is called: a manual sync on sync/manual included.
+  while IFS=$'\t' read -r n h who; do
+    [ -n "$n" ] || continue
+    if git rev-parse -q --verify "origin/$h^{commit}" >/dev/null && git merge-base --is-ancestor "$TARGET" "origin/$h"; then
+      echo "ci-sync: pull request #$n ($h) already contains upstream $VER; nothing to do"
+      summary "Pull request #$n (\`$h\`) already contains upstream $VER."
+      exit 0
+    fi
+  done <<< "$OPEN"
   CLOSED="$(gh pr list --repo "$REPO" --state closed --head "$BR" --json number,mergedAt \
             --jq '.[] | select(.mergedAt == null) | .number' | head -1)"
   if [ -n "$CLOSED" ] && [ "$BRANCH_EXISTS" -eq 1 ]; then
@@ -122,7 +129,7 @@ bash "$TMP/wt/tools/ue/sync.sh" "$TARGET" 2>&1 | tee "$LOG"
 RC="${PIPESTATUS[0]}"
 if [ "$RC" -ne 0 ]; then
   if [ "$RC" -eq 2 ]; then
-    summary "### Upstream $VER needs you" "Run \`bash tools/ue/sync.sh\` locally on a branch from $BASE_BRANCH, resolve the files below and open the pull request yourself." '```' "$(cat "$LOG")" '```'
+    summary "### Upstream $VER needs you" "Run \`bash tools/ue/sync.sh\` locally on a branch from $BASE_BRANCH (such as \`sync/manual\`), resolve the files below, push it and open the pull request. Once that pull request is open, this workflow sees that it contains $VER and leaves the release alone." '```' "$(cat "$LOG")" '```'
     echo "::error::upstream $VER conflicts with $BASE_BRANCH; run bash tools/ue/sync.sh locally"
     exit 2
   fi
@@ -155,7 +162,17 @@ $(cat "$LOG")
 EOF
 )"
 TITLE="Sync upstream $VER"
-OLDER="$(printf '%s\n' "$OPEN" | awk -F'\t' -v b="$BR" 'NF == 2 && $2 != b { print $1 }')"
+# Only sync pull requests this workflow opened are closed as superseded. One a
+# person opened (a manual sync on sync/manual) may hold a hand resolution, so
+# it is left open and named instead.
+OLDER="$(printf '%s\n' "$OPEN" | awk -F'\t' -v b="$BR" '$1 != "" && $2 != b && $3 == "bot" { print $1 }')"
+YOURS="$(printf '%s\n' "$OPEN" | awk -F'\t' -v b="$BR" '$1 != "" && $2 != b && $3 != "bot" { printf "#%s (%s) ", $1, $2 }')"
+if [ -n "$YOURS" ]; then
+  BODY="$BODY
+
+Also open, and left alone because a person opened them: $YOURS. Close them if this pull request replaces them."
+  echo "ci-sync: left open (opened by a person, not this workflow): $YOURS"
+fi
 if [ "$DRY" -eq 1 ]; then
   echo "[dry-run] gh pr create --repo $REPO --base $BASE_BRANCH --head $BR --title \"$TITLE\""
   for n in $OLDER; do echo "[dry-run] gh pr close $n --repo $REPO --delete-branch (superseded)"; done
