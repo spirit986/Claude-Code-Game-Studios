@@ -235,16 +235,21 @@ unlink_upstream() {
 }
 
 edit_upgrading() {
-  local x="$1" left
+  local x="$1" left up out
+  # Upstream's copy, for the code-block check below: "<ends inside a block>
+  # <fence lines, odd or even>".
+  up="$(awk "$UE_AWK_LIB"'{ ue_fence($0) } /^[[:space:]]*(```|~~~)/ { n++ } END { print ue_in_fence + 0, n % 2 }' "$x")"
   # The release sections stay: they list each release's changes and one-off
   # steps. Upstream's upgrade strategies merge or copy upstream into a project,
   # which brings the Godot and Unity files back, so the strategies section
-  # points at install.sh instead.
+  # points at install.sh instead. A "## " line inside a code block is not a
+  # heading, so it does not end the section.
   if grep -q '^## Upgrade Strategies' "$x"; then
     TEXT="This is the UE-only variant: update a project with \`tools/ue/install.sh\`, as \`.claude/docs/ue-variant.md\` describes, never by merging or copying upstream's files into it, which brings back the Godot and Unity files and undoes the variant's changes. The release sections below say what each release changed. Their file lists (Safe to Overwrite, Merge Carefully, Delete) are what \`install.sh\` does for you: it updates the files you have not changed, merges the ones you have, removes the ones a release deletes, and leaves out the files this variant removes, even where a list names them. What is left for you are the steps for the files it adds once and then leaves to you: \`project.yaml\`, \`technical-preferences.md\` and the registries." \
-    awk '
-      /^## Upgrade Strategies/ { print; print ""; print ENVIRON["TEXT"]; print ""; skip = 1; next }
-      skip && /^## / { skip = 0 }
+    awk "$UE_AWK_LIB"'
+      { was_in = ue_in_fence; f = ue_fence($0); heading = !was_in && !f && /^## / }
+      heading && /^## Upgrade Strategies/ { print; print ""; print ENVIRON["TEXT"]; print ""; skip = 1; next }
+      skip && heading { skip = 0 }
       !skip { print }' "$x" > "$x.t" && mv "$x.t" "$x"
   else
     ue_warn "UPGRADING.md: the '## Upgrade Strategies' heading changed upstream; left as it is"
@@ -255,6 +260,10 @@ edit_upgrading() {
   # from a remote the variant never adds), each "**Strategy A:** the merge has
   # already ..." note, and each "> **Strategy A ...**" aside. One sentence about
   # what the merge does to docs/engine-reference/ is reworded for install.sh.
+  # A paragraph ends at a blank line outside a code block, so a code block with
+  # blank lines in it stays in one piece: dropped whole with its paragraph, or
+  # kept whole. If upstream's copy ends inside a code block, the last piece is
+  # kept rather than risk dropping the rest of the file.
   OLD1=" With Strategy A
 the merge takes the new folder without asking; only a file you edited (usually
 \`VERSION.md\`) conflicts. To keep yours, run \`git checkout HEAD -- docs/engine-reference/<engine>/\` before you commit the merge." \
@@ -264,20 +273,30 @@ the files you edited (usually \`VERSION.md\`); to keep your folder, run \`git ch
     function strategy_only(p) {
       return p ~ /^With Strateg(y|ies) / || p ~ /^\*\*Strateg(y|ies) [A-C][0-9]*:\*\*/ || p ~ /^> \*\*Strateg(y|ies) / || index(p, "template/main") > 0
     }
-    function flush() {
+    function flush(keep) {
       if (buf != "") {
-        if (strategy_only(buf)) dropped = 1
+        if (!keep && strategy_only(buf)) dropped = 1
         else printf "%s", replace_all(buf, ENVIRON["OLD1"], ENVIRON["NEW1"])
       }
       buf = ""
     }
-    /^[[:space:]]*$/ { flush(); if (dropped) { dropped = 0; next } print; next }
-    { buf = buf $0 "\n" }
-    END { flush() }' "$x" > "$x.t" && mv "$x.t" "$x"
+    !ue_in_fence && /^[[:space:]]*$/ { flush(0); if (dropped) { dropped = 0; next } print; next }
+    { ue_fence($0); buf = buf $0 "\n" }
+    END { flush(ue_in_fence) }' "$x" > "$x.t" && mv "$x.t" "$x"
   # Upstream rewords these at times: whatever is left fails the check, so a
   # step that would restore the removed files is never shipped unnoticed.
   left="$(awk '/template\/main|Strateg(y|ies) [A-C]/ { printf "%s ", NR }' "$x")"
   [ -z "$left" ] || fail "UPGRADING.md still has steps for upstream's upgrade strategies, on line(s) $left(they merge or copy upstream into a project): drop them in edit_upgrading in tools/ue/convert.sh"
+  # A code block cut in half turns the rest of the file inside out (code shows
+  # as text and text as code). Two signs, each compared with upstream's copy so
+  # that upstream's own mistake only warns: the file ends inside a block, or it
+  # has an odd number of fence lines. The second catches a cut block whose
+  # opening fence a later ```lang line, which cannot close a block, absorbs.
+  out="$(awk "$UE_AWK_LIB"'{ ue_fence($0) } /^[[:space:]]*(```|~~~)/ { n++ } END { print ue_in_fence + 0, n % 2 }' "$x")"
+  if [ "$out" != "0 0" ]; then
+    if [ "$up" != "0 0" ]; then ue_warn "UPGRADING.md: upstream's copy has an unclosed code block or an odd number of fence lines; the paragraphs after it were kept as they are"
+    else fail "UPGRADING.md: dropping the strategy steps cut a code block in half (it ends inside a block, or its fence lines are odd): fix edit_upgrading in tools/ue/convert.sh"; fi
+  fi
   unlink_upstream "$x"
 }
 

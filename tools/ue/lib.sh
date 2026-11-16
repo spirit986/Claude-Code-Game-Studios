@@ -183,14 +183,31 @@ ue_redact_url() {
   printf '%s' "$u"
 }
 
-# awk functions the helpers below share. replace_all(s, old, new): s with every
-# occurrence of the literal text old replaced by new.
+# awk functions the helpers below share.
+# replace_all(s, old, new): s with every occurrence of the literal text old
+#   replaced by new.
+# ue_fence(line): call it on every line of a Markdown file, in order. It keeps
+#   ue_in_fence set while inside a ``` or ~~~ code block and returns 1 for a
+#   line that opens or closes one. As in CommonMark, only a run of the same
+#   character, at least as long and with nothing after it, closes a block. Unlike
+#   CommonMark, a fence may be indented any amount, so one inside a list item
+#   counts too.
 UE_AWK_LIB='
 function replace_all(s, o, n,    out, i) {
   if (o == "") return s
   out = ""
   while ((i = index(s, o)) > 0) { out = out substr(s, 1, i - 1) n; s = substr(s, i + length(o)) }
   return out s
+}
+function ue_fence(l,    run, rest) {
+  if (!match(l, /^[[:space:]]*(```+|~~~+)/)) return 0
+  run = substr(l, RSTART, RLENGTH); rest = substr(l, RSTART + RLENGTH); sub(/^[[:space:]]+/, "", run)
+  if (!ue_in_fence) {
+    # ```a``` on one line is inline code, not a fence.
+    if (substr(run, 1, 1) == "`" && index(rest, "`")) return 0
+    ue_in_fence = 1; ue_fence_c = substr(run, 1, 1); ue_fence_n = length(run); return 1 }
+  if (substr(run, 1, 1) == ue_fence_c && length(run) >= ue_fence_n && rest ~ /^[[:space:]]*$/) { ue_in_fence = 0; return 1 }
+  return 0
 }
 '
 
