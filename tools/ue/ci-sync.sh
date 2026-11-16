@@ -51,11 +51,14 @@ if [ "$USE_GH" -eq 1 ] && ! command -v gh >/dev/null 2>&1; then
   [ "$DRY" -eq 1 ] || ue_die "gh is needed to open the pull request (or pass --no-pr)"
   USE_GH=0
 fi
-REPO="${GITHUB_REPOSITORY:-$(git remote get-url origin 2>/dev/null | sed -E 's#^.*github\.com[:/]##; s#\.git$##')}"
+# In the workflow GITHUB_REPOSITORY names it; by hand, origin's URL does, and
+# UE_VARIANT_REPO when origin is not on GitHub.
+REPO="${GITHUB_REPOSITORY:-}"
+[ -n "$REPO" ] || REPO="$(ue_github_slug "$(git remote get-url origin 2>/dev/null)")" || REPO="$UE_VARIANT_REPO"
 
 git fetch -q --prune origin || ue_die "could not fetch origin"
 git fetch -q --tags "$UE_UPSTREAM_URL" "+refs/heads/main:refs/remotes/upstream/main" \
-  || ue_die "could not fetch $UE_UPSTREAM_URL"
+  || ue_die "could not fetch $(ue_redact_url "$UE_UPSTREAM_URL")"
 
 # --- 1. Mirror ------------------------------------------------------------------
 UP="$(git rev-parse upstream/main)"

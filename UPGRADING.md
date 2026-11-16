@@ -35,7 +35,7 @@ of the template to the next.
 
 ## Upgrade Strategies
 
-This is the UE-only variant. Update a project with `tools/ue/install.sh`, as `.claude/docs/ue-variant.md` describes, not with the strategies upstream gives here: merging upstream into a project brings back the Godot and Unity files and undoes the variant's changes. The release sections below still list what each release changed and the one-off steps to take after installing it.
+This is the UE-only variant: update a project with `tools/ue/install.sh`, as `.claude/docs/ue-variant.md` describes, never by merging or copying upstream's files into it, which brings back the Godot and Unity files and undoes the variant's changes. The release sections below say what each release changed. Their file lists (Safe to Overwrite, Merge Carefully, Delete) are what `install.sh` does for you: it updates the files you have not changed, merges the ones you have, removes the ones a release deletes, and leaves out the files this variant removes, even where a list names them. What is left for you are the steps for the files it adds once and then leaves to you: `project.yaml`, `technical-preferences.md` and the registries.
 
 ## v1.2.0 → v1.3.0
 
@@ -130,9 +130,6 @@ studio-tests/                                ← three specs renamed with their
                                                Carefully
 ```
 
-With Strategy A2, also check out what this release changes outside `.claude`
-(your README aside): `git checkout template/main -- studio-tests docs/WORKFLOW-GUIDE.md docs/CLAUDE.md docs/skill-flow-diagrams.md docs/migration-guide-v1.1.md docs/engine-reference/README.md docs/engine-reference/web docs/engine-reference/godot docs/engine-reference/unity/VERSION.md docs/engine-reference/unreal/VERSION.md SECURITY.md`.
-
 Take `.claude/hooks/` and `.claude/scripts/` together, and before the
 `settings.json` step below: the new allow rules and the 1.3.0 skills name
 scripts 1.2.0 did not have.
@@ -140,10 +137,6 @@ scripts 1.2.0 did not have.
 ---
 
 ### Files: Merge Carefully
-
-**Strategy A:** the merge has already made these changes wherever git could,
-which is every file you never edited. Check each item instead of making it
-again. The steps are for files that conflicted, and for Strategies A2 and C.
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have:
@@ -309,9 +302,6 @@ In a Godot project, after adding `production/.gdignore`, delete the .import file
 (`find production -name '*.import' -delete`): Godot imported the evidence screenshots there as game resources,
 and a default export packed them into the game.
 
-With Strategy A2, also check out what this release changes outside `.claude`
-(your README aside): `git checkout template/main -- studio-tests production/.gdignore .worktreeinclude docs/WORKFLOW-GUIDE.md`.
-
 Take `.claude/hooks/` whole, not only its new files: a 1.1.3 `yaml-helper.sh`
 answers the new lookups (`resolve_setting modes.rigor` and the rest) with its
 usage line, so `/settings`, `/perf-profile` and the command the update notice
@@ -320,11 +310,6 @@ prints stop working, and the rebuilt skills lose their review and gate lines.
 ---
 
 ### Files: Merge Carefully
-
-**Strategy A:** the merge has already made these changes wherever git could,
-which is every file you never edited. Check each item instead of making it
-again (a hook entry added twice runs twice). The steps are for files that
-conflicted, and for Strategies A2 and C.
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have:
@@ -403,9 +388,8 @@ still pre-approves every shell command while it runs.
 **`docs/engine-reference/<engine>/`** — take the folder if your project uses
 the newer engine (Godot 4.7, Unreal 5.8) or has not pinned one yet. If your
 project stays on Godot 4.6 or Unreal 5.7, keep your current folder for that
-engine: the new one describes APIs your editor does not have. With Strategy A
-the merge takes the new folder without asking; only a file you edited (usually
-`VERSION.md`) conflicts. To keep yours, run `git checkout HEAD -- docs/engine-reference/<engine>/` before you commit the merge. Either way, run
+engine: the new one describes APIs your editor does not have. `install.sh` takes the new folder and merges
+the files you edited (usually `VERSION.md`); to keep your folder, run `git checkout HEAD -- docs/engine-reference/<engine>/` after the install. Either way, run
 `/setup-engine` again afterwards so `Installed at pin time` records your editor.
 
 **`.github/workflows/`** — a workflow `/test-setup` already wrote is not changed.
@@ -885,10 +869,6 @@ CHANGELOG.md
 UPGRADING.md
 .gitignore        (adds project.local.yaml)
 ```
-
-> **Strategy A (git merge) protects you here automatically** — git flags that file
-> as a conflict because you both changed it. The manual-copy strategies do not:
-> a recursive copy overwrites it without a word.
 
 Your own tests under `tests/` and any tooling under `tools/` are yours; the
 template ships nothing into either, so nothing there is at risk.

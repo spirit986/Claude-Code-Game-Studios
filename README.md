@@ -28,6 +28,55 @@ To update later: `git -C ccgs-ue pull`, then run the install again. It updates t
 files you have not changed, merges the ones you have, and never touches your own
 skills, agents or settings.
 
+## Configuration
+
+`project.yaml` at the repo root is the single source of truth for how the
+studio behaves on your project — engine, naming conventions, and a `modes`
+block that controls how much process every skill enforces. `/start` writes it
+for you; you rarely need to hand-edit it.
+
+The one question that matters most is **`modes.rigor`** — `minimal`, `standard`,
+or `full`. It's a single front door over six separate knobs (`workflow` —
+which GDD sections are required, `docs.density`, `qa.level`,
+`story_granularity`, `review_mode` — how many director agents review your work,
+and `team.size`), so `/start` asks it once instead of six times:
+
+- **`minimal`** (default) — the light path. No GDDs required, terse docs, minimal QA evidence, solo review. `/prototype` (questions, a brief, a first build) → play and change it → grow it on PROCEED → one feature a sitting: name it, and it is built, checked and committed. Stories (`/create-stories` → `/dev-story` ↔ `/story-done`) only when you ask.
+- **`standard`** — 5 required GDD sections, balanced doc depth, standard QA evidence, lean review.
+- **`full`** — all 8 GDD sections, thorough docs, full QA evidence on every story type, full director review.
+
+`minimal` is the default because the heavier tier costs more to reach working
+code without producing a better result, and gives nothing back when someone new
+picks the project up. Raise it in one `/project-settings` call when your project grows
+— `/next-step` and `/gate-check` will suggest it when they see the signs.
+
+Two escape hatches keep one setting from being a blunt instrument.
+**`system_overrides`** holds a single system to a higher standard than the rest
+of the project — your combat system gets the full treatment while everything
+else stays light. **`testing.strict`** sets, per test type (logic, integration,
+visual, UI, config), whether missing evidence blocks a story or merely warns.
+
+Any of the six underlying knobs can still be set individually if you want a mix
+(e.g. `workflow: full` with `docs.density: terse` — comprehensive but compact).
+Two of them — `review_mode` (`full` / `lean` / `solo`) and `team.size` — are
+also **personal**: rigor sets the team-wide default, but you can override them
+per-developer in a gitignored `project.local.yaml` without touching the shared
+config. `modes.automation` (how often the AI pauses to ask before it acts) sits
+outside rigor and is likewise personally overridable. `project.goal` (a jam
+game, a hobby, a game to sell, and so on) is what you want from the game;
+`/start` guesses it, and `/cut` reads it.
+
+View or change any setting with the `/project-settings` skill:
+
+```
+/project-settings                              # view effective config
+/project-settings modes.review_mode            # view one setting
+/project-settings modes.rigor=full             # write to project.yaml (team-wide)
+/project-settings --local modes.review_mode=solo   # write to project.local.yaml (just you)
+```
+
+Full schema and per-setting behavior: `.claude/docs/effects-map.md`.
+
 ## How it stays current
 
 The **Upstream sync** workflow runs daily. It keeps `main` an exact copy of

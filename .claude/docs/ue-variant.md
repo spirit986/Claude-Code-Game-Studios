@@ -1,9 +1,14 @@
 # UE-only variant
 
-This is Claude Code Game Studios with Unreal Engine only: the upstream template (credited in `README.md`)
+This is Claude Code Game Studios with Unreal Engine only: the upstream template
 with the Godot and Unity parts removed, `/setup-engine` defaulting to Unreal
 Engine 5.8, and its own model and effort tiers. Upstream releases arrive as pull
 requests, and `tools/ue/install.sh` copies the result into your UE project.
+
+The upstream template and its author are credited in the
+[Credit section of this variant's README](https://github.com/spirit986/Claude-Code-Game-Studios/blob/unreal-engine/README.md#credit),
+and its licence, with the copyright notice, is `LICENSE` here and
+`.claude/CCGS-LICENSE.txt` in an installed project.
 
 ## Branches
 
@@ -29,11 +34,14 @@ requests, and `tools/ue/install.sh` copies the result into your UE project.
 `unity/`, their test specs in `studio-tests/agents/engine/`,
 `.claude/scripts/godot-parse-check.gd`,
 `.claude/skills/setup-engine/references/godot-language-config.md`,
-`production/.gdignore` and `SECURITY.md` (it sends reports upstream). Also
-everything upstream keeps under `.github/`: its code owners, funding button,
-issue and pull-request templates, and any workflow it adds later. Only this
-variant's own files there stay (`UE_OWN_GITHUB`). The list is `UE_DENY` in
-`tools/ue/lib.sh`.
+`production/.gdignore`, `SECURITY.md` (it sends reports upstream) and
+`CONTRIBUTING.md` (upstream's review process: code owners, issues, release-note
+credits). Also everything upstream keeps under `.github/`: its code owners,
+funding button, issue and pull-request templates, and any workflow it adds
+later. Only this variant's own files there stay (`UE_OWN_GITHUB`). The list is
+`UE_DENY` in `tools/ue/lib.sh`. This keeps upstream's workflows off
+`unreal-engine` and its pull requests; `main` still carries them (see
+*Syncing with upstream*).
 
 **Kept:** the Web engine. `/prototype`, `/start` and `/setup-engine` are built
 around it. `install.sh` sets `engine.name: Unreal` in a project that has no
@@ -53,12 +61,18 @@ branch last merged, then edited:
 | `.claude/docs/agent-roster.md` | The Godot and Unity agents removed |
 | `director-gates/lp-*.md`, the `lead-programmer` test spec | `lead-programmer` on Opus |
 | `studio-tests/catalog.yaml` | The deleted agents' entries removed |
-| `UPGRADING.md` | Its upgrade strategies, which merge upstream into a project, replaced by a pointer to `install.sh`; the release sections stay |
-| `UPGRADING.md`, `CHANGELOG.md` | Links to upstream's issues become plain "upstream #N" references |
+| `UPGRADING.md` | Its upgrade strategies, which merge or copy upstream into a project, replaced by a pointer to `install.sh`, and the release sections' steps for those strategies (`git checkout template/main -- …` and the *Strategy A* notes) removed; the rest of the release sections stays |
+| `UPGRADING.md`, `CHANGELOG.md` | Upstream's links to itself become plain text: "upstream #N" for an issue or pull request |
 
 **Generated:** `README.md`, from `tools/ue/variant-readme.md`: what this variant
-is, how to install and update it, and the credit to the upstream author. Edit
-the template, never `README.md`.
+is, how to install and update it, the Configuration section of upstream's
+README, and the credit to the upstream author. Edit the template, never
+`README.md`. The list is `UE_GENERATED` in `tools/ue/lib.sh`.
+
+**Upstream's name** appears only in the README's Credit section and the files
+`UE_NAME_OK` in `tools/ue/lib.sh` lists (`LICENSE`, and upstream's own release
+check and `/start` warning). `convert.sh --check` fails on any other mention,
+so one a new release adds stops the sync until `convert.sh` rewrites it.
 
 **Added:** `tools/ue/`, `.github/workflows/upstream-sync.yml` and this file.
 
@@ -142,7 +156,12 @@ trying the release and failing.
 - If upstream ever adds a file under `.github/workflows/`, the workflow's token
   cannot push it to `main`. Update `main` yourself (`git fetch upstream`, then
   `git push origin upstream/main:main`), or give the workflow a fine-grained
-  token with Workflows write access.
+  token with Workflows write access. Either push runs upstream's workflow here
+  if it starts on a push: `main` keeps upstream's `.github/` unchanged, and
+  `convert.sh` removes it only from `unreal-engine`. Cancel that run in the
+  Actions tab, then open the workflow there and choose *… → Disable workflow*.
+  A disabled workflow never runs in this repository, on any branch, so this is
+  needed once per upstream workflow.
 - In an installed project, the session-start notice for a new release points
   here: wait for (or merge) the sync pull request, then run the install. Never
   follow upstream's `UPGRADING.md` steps in the project; they bring Godot and

@@ -3,6 +3,9 @@
 # Sourced by convert.sh, sync.sh, ci-sync.sh and install.sh.
 # The whole process is described in .claude/docs/ue-variant.md.
 
+ue_warn() { printf 'WARN: %s\n' "$*" >&2; }
+ue_die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
 # ---------------------------------------------------------------------------
 # Settings. Change them here, then run `bash tools/ue/convert.sh` and commit.
 # Never hand-edit the upstream files convert.sh rebuilds (see ue_overlay_files).
@@ -30,7 +33,9 @@ UE_SPECIALIST_UI="ue-umg-specialist"
 UE_SPECIALIST_ADDITIONAL=(ue-gas-specialist ue-blueprint-specialist ue-replication-specialist)
 
 # Paths the variant removes: the Godot and Unity agents, references, test specs
-# and helpers, and upstream's security policy, which sends reports upstream.
+# and helpers; upstream's security policy, which sends reports upstream; and its
+# contributing guide, which describes its own review process (code owners,
+# issues, release-note credits) and is linked from the new-PR page.
 # Web stays: /prototype, /start and /setup-engine are built around it, and
 # install.sh sets engine.name to Unreal so those skills take the engine route.
 # convert.sh also removes every file upstream keeps under .github/ (its code
@@ -47,18 +52,38 @@ UE_DENY=(
   '.claude/skills/setup-engine/references/godot-language-config.md'
   'production/.gdignore'
   'SECURITY.md'
+  'CONTRIBUTING.md'
 )
 # This variant's own files under .github/, which the .github/ rule above keeps.
 UE_OWN_GITHUB=(.github/workflows/upstream-sync.yml)
 
 # This variant's repository, named in the README and the update notice.
 UE_VARIANT_REPO="${UE_VARIANT_REPO:-spirit986/Claude-Code-Game-Studios}"
-# The upstream repository, and the local ref that mirrors it. The README's credit
-# and the release-notes links are derived from this one URL.
-UE_UPSTREAM_URL="${UE_UPSTREAM_URL:-https://github.com/Donchitos/Claude-Code-Game-Studios.git}"
-UE_UPSTREAM_WEB="$(printf '%s' "$UE_UPSTREAM_URL" | sed -E 's#\.git$##; s#^git@github\.com:#https://github.com/#')"
-UE_UPSTREAM_OWNER="$(printf '%s' "$UE_UPSTREAM_WEB" | sed -E 's#^https://github\.com/([^/]+)/.*#\1#')"
-# The README is generated from this template, not from upstream's README.
+# The upstream repository on GitHub, as <owner>/<name>. The README's credit, the
+# release-notes link and the name check are built from it, so the name is
+# written once. It is a setting of its own, not parsed from UE_UPSTREAM_URL, so
+# a fetch URL with a token in it never reaches the README or a pull request.
+UE_UPSTREAM_SLUG="${UE_UPSTREAM_SLUG:-Donchitos/Claude-Code-Game-Studios}"
+_ue_slug_re='^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'
+[[ $UE_UPSTREAM_SLUG =~ $_ue_slug_re ]] || ue_die "UE_UPSTREAM_SLUG must be <owner>/<name> on GitHub"
+[[ $UE_VARIANT_REPO =~ $_ue_slug_re ]] || ue_die "UE_VARIANT_REPO must be <owner>/<name> on GitHub"
+UE_UPSTREAM_OWNER="${UE_UPSTREAM_SLUG%%/*}"
+UE_UPSTREAM_WEB="https://github.com/$UE_UPSTREAM_SLUG"
+# Where the sync fetches upstream from. Override it for a mirror or a URL with
+# credentials: it is only fetched from, never written into a file.
+UE_UPSTREAM_URL="${UE_UPSTREAM_URL:-$UE_UPSTREAM_WEB.git}"
+# The only files, besides README.md's Credit section, that may name upstream's
+# author: convert.sh --check fails on any other mention, so the name cannot
+# spread through the variant unnoticed. LICENSE: MIT needs its notice kept.
+# update-check.sh: it watches upstream's releases. /start, its test spec and
+# effects-map.md: upstream's warning when a clone still points at upstream.
+UE_NAME_OK=(LICENSE tools/ue/lib.sh .claude/hooks/update-check.sh
+            .claude/skills/start/SKILL.md .claude/docs/effects-map.md
+            studio-tests/skills/utility/start.md)
+# Files convert.sh generates from this variant's own templates instead of
+# rebuilding upstream's copy. README.md comes from UE_README_TEMPLATE, with
+# upstream's Configuration section pulled in.
+UE_GENERATED=(README.md)
 UE_README_TEMPLATE="tools/ue/variant-readme.md"
 UE_MIRROR_REF="${UE_MIRROR_REF:-origin/main}"
 # The upstream commit the converted files were last built from. convert.sh
@@ -75,7 +100,6 @@ ue_overlay_files() {
   local s a
   printf '%s\n' \
     CLAUDE.md \
-    README.md \
     UPGRADING.md \
     CHANGELOG.md \
     .claude/settings.json \
@@ -101,9 +125,6 @@ ue_denied() {
   done
   return 1
 }
-
-ue_warn() { printf 'WARN: %s\n' "$*" >&2; }
-ue_die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 # Print a frontmatter key's value from a file's opening --- block.
 ue_fm_get() {
@@ -139,19 +160,53 @@ ue_fm_set() {
   ' "$f" > "$f.ue-tmp" && mv "$f.ue-tmp" "$f"
 }
 
-# Fill a template: every {{NAME}} becomes the value of the environment variable
-# UEV_NAME, as literal text.
+# Print the owner/name of a GitHub repository URL: https (with or without
+# user:token@), git@github.com: or ssh://git@github.com/. Returns 1 otherwise.
+ue_github_slug() {
+  local u="${1%/}"
+  u="${u%.git}"
+  case "$u" in
+    https://github.com/*|http://github.com/*) u="${u#*://github.com/}" ;;
+    https://*@github.com/*|http://*@github.com/*) u="${u#*@github.com/}" ;;
+    git@github.com:*) u="${u#git@github.com:}" ;;
+    ssh://git@github.com/*) u="${u#ssh://git@github.com/}" ;;
+    *) return 1 ;;
+  esac
+  [[ $u =~ $_ue_slug_re ]] || return 1
+  printf '%s\n' "$u"
+}
+
+# A URL with any user:password@ taken out, for messages.
+ue_redact_url() {
+  local u="$1"
+  case "$u" in *://*@*) u="${u%%://*}://${u#*@}" ;; esac
+  printf '%s' "$u"
+}
+
+# awk functions the helpers below share. replace_all(s, old, new): s with every
+# occurrence of the literal text old replaced by new.
+UE_AWK_LIB='
+function replace_all(s, o, n,    out, i) {
+  if (o == "") return s
+  out = ""
+  while ((i = index(s, o)) > 0) { out = out substr(s, 1, i - 1) n; s = substr(s, i + length(o)) }
+  return out s
+}
+'
+
+# Fill a template and print it: every {{NAME}} becomes the value of the
+# environment variable UEV_NAME, as literal text. CRs are dropped, so a template
+# checked out CRLF (core.autocrlf on Windows) builds the same file. A comment
+# that opens the template (its note to whoever edits it) is left out.
 ue_fill_template() {
-  awk '
+  awk "$UE_AWK_LIB"'
     BEGIN { for (k in ENVIRON) if (k ~ /^UEV_/) val["{{" substr(k, 5) "}}"] = ENVIRON[k] }
-    {
-      for (t in val) {
-        out = ""; s = $0
-        while ((i = index(s, t)) > 0) { out = out substr(s, 1, i - 1) val[t]; s = substr(s, i + length(t)) }
-        $0 = out s
-      }
-      print
-    }' "$1" > "$2"
+    { sub(/\r$/, "") }
+    NR == 1 && /^<!--/ { note = 1 }
+    note { if (/-->/) { note = 0; gap = 1 } next }
+    gap && /^[[:space:]]*$/ { next }
+    { gap = 0; for (t in val) if (index($0, t)) $0 = replace_all($0, t, val[t]); print }
+  ' "$1"
 }
 
 # Replace the first line matching an extended regex with literal text.
@@ -171,13 +226,9 @@ ue_replace_line() {
 # Replace literal text inside lines, every occurrence. Returns 1 when absent.
 ue_replace_text() {
   local f="$1"
-  OLD="$2" NEW="$3" awk '
-    BEGIN { o = ENVIRON["OLD"]; n = ENVIRON["NEW"] }
-    {
-      out = ""; s = $0
-      while ((i = index(s, o)) > 0) { out = out substr(s, 1, i - 1) n; s = substr(s, i + length(o)); done = 1 }
-      print out s
-    }
+  OLD="$2" NEW="$3" awk "$UE_AWK_LIB"'
+    index($0, ENVIRON["OLD"]) { $0 = replace_all($0, ENVIRON["OLD"], ENVIRON["NEW"]); done = 1 }
+    { print }
     END { exit !done }
   ' "$f" > "$f.ue-tmp"
   local rc=$?
