@@ -952,7 +952,7 @@ Godot, and the checks tell you what they found.** A fix release for bugs in
   never applied.
 - **Agent models are documented as they run**, with the one-line setting that
   fixes a pinned agent overflowing a large-context session
-  ([#67](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/67)).
+  (upstream #67).
 - **Agent specs can be run, and they match the agents.** `/skill-test spec` and
   `/skill-test category` looked only in `.claude/skills/`, so every agent spec
   in the testing framework was refused as not found; both now take an agent
@@ -963,7 +963,7 @@ Godot, and the checks tell you what they found.** A fix release for bugs in
   Tiers are written as the aliases `model:` takes — `opus`, `sonnet`, `haiku`,
   `inherit` — never as model IDs, so a new model release leaves them correct;
   the agent roster and gate index no longer repeat them
-  ([#131](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/131)).
+  (upstream #131).
 - **`devops-engineer` and `community-manager` run on Sonnet.** They were the
   only agents pinned to Haiku, the tier `model-tiers.md` keeps for read-only
   lookups and formatting. One builds your CI pipelines and the other writes what
@@ -1371,7 +1371,7 @@ Code 2.1.281 to 2.1.284, on Windows, Linux (bash 5 and 3.2) and macOS. **If you 
 ## [1.1.1] — 2026-09-24
 
 **Skills and agents work again outside auto mode.** A fix release for
-[#128](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/128).
+upstream #128.
 
 ### Fixed
 

@@ -4,7 +4,7 @@
 #
 #   bash tools/ue/ci-sync.sh [--dry-run] [--no-pr]
 #
-# 1. Fast-forwards origin/main to Donchitos's main (UE_UPSTREAM_URL). main must
+# 1. Fast-forwards origin/main to upstream's main (UE_UPSTREAM_URL). main must
 #    stay an exact copy: if it has commits of its own, this stops.
 # 2. Stops if unreal-engine already contains main: nothing to sync.
 # 3. Looks at the open sync/* pull requests. One whose branch already contains
@@ -44,18 +44,21 @@ run() { if [ "$DRY" -eq 1 ]; then echo "[dry-run] $*"; else "$@"; fi; }
 summary() { [ -n "${GITHUB_STEP_SUMMARY:-}" ] && printf '%s\n' "$@" >> "$GITHUB_STEP_SUMMARY"; return 0; }
 
 # Pull requests are looked up in this repository explicitly: with an `upstream`
-# remote, gh would otherwise pick Donchitos's repository.
+# remote, gh would otherwise pick the upstream repository.
 USE_GH=1
 [ "$NOPR" -eq 1 ] && USE_GH=0
 if [ "$USE_GH" -eq 1 ] && ! command -v gh >/dev/null 2>&1; then
   [ "$DRY" -eq 1 ] || ue_die "gh is needed to open the pull request (or pass --no-pr)"
   USE_GH=0
 fi
-REPO="${GITHUB_REPOSITORY:-$(git remote get-url origin 2>/dev/null | sed -E 's#^.*github\.com[:/]##; s#\.git$##')}"
+# In the workflow GITHUB_REPOSITORY names it; by hand, origin's URL does, and
+# UE_VARIANT_REPO when origin is not on GitHub.
+REPO="${GITHUB_REPOSITORY:-}"
+[ -n "$REPO" ] || REPO="$(ue_github_slug "$(git remote get-url origin 2>/dev/null)")" || REPO="$UE_VARIANT_REPO"
 
 git fetch -q --prune origin || ue_die "could not fetch origin"
 git fetch -q --tags "$UE_UPSTREAM_URL" "+refs/heads/main:refs/remotes/upstream/main" \
-  || ue_die "could not fetch $UE_UPSTREAM_URL"
+  || ue_die "could not fetch $(ue_redact_url "$UE_UPSTREAM_URL")"
 
 # --- 1. Mirror ------------------------------------------------------------------
 UP="$(git rev-parse upstream/main)"
@@ -143,7 +146,7 @@ run git push -q -f origin "refs/heads/$BR:refs/heads/$BR" || ue_die "could not p
 
 NOTES=""
 git describe --tags --exact-match upstream/main >/dev/null 2>&1 \
-  && NOTES="Release notes: https://github.com/Donchitos/Claude-Code-Game-Studios/releases/tag/$VER"
+  && NOTES="Release notes: $UE_UPSTREAM_WEB/releases/tag/$VER"
 BODY="$(cat <<EOF
 Merges upstream **$VER** (\`$(git rev-parse --short upstream/main)\`) into \`$BASE_BRANCH\`, converted by \`tools/ue/sync.sh\`.
 

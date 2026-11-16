@@ -1,0 +1,4 @@
+# The README template is read by tools/ue/convert.sh, which compares what it
+# builds byte for byte. convert.sh drops CRs anyway; this keeps the checkout LF
+# under core.autocrlf=true, so the template's own diffs stay clean on Windows.
+*.md text eol=lf

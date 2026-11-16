@@ -35,144 +35,7 @@ of the template to the next.
 
 ## Upgrade Strategies
 
-There are four ways to pull in template updates. Choose based on how your
-repo is set up.
-
-### Strategy A — Git Remote Merge (recommended)
-
-Best when: you cloned the template and have your own commits on top of it —
-your repo shares history with the template.
-
-```bash
-# Add the template as a remote (one-time setup; skip this if `git remote -v` already lists template)
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-
-# Fetch the new version and its release tag
-git fetch --tags template main
-
-# Merge into your branch
-git merge template/main
-```
-
-Git will flag conflicts only in files that both the template *and* you have
-changed. Resolve each one — your game content goes in, structural improvements
-come along for the ride. Then commit the merge.
-
-**Tip:** The files most likely to conflict are `CLAUDE.md`, `project.yaml`, and
-`.claude/docs/technical-preferences.md`, because you've filled them in with
-your engine and project settings. Keep your content; accept the structural changes.
-
-**If git refuses with `fatal: refusing to merge unrelated histories`**, your
-repo did not start as a clone of the template (zip download, `git init` from
-scratch). Do **not** force it with `--allow-unrelated-histories` — with no
-common ancestor, git flags *every* template file as a conflict and you'll be
-resolving hundreds of files by hand. Use Strategy A2 instead.
-
-### Strategy A2 — Selective checkout (no shared history)
-
-Best when: your repo has no common history with the template but you do use git.
-
-> **First, check whether you have edited any framework files.** The checkout
-> below **replaces** everything under `.claude/`. Files *you added* survive, but
-> your edits to files the framework also ships are overwritten — agent
-> definitions and director gates are the ones people customise most.
->
-> ```bash
-> git log --oneline -- .claude    # commits here mean you have customisations
-> ```
->
-> If that lists anything beyond your initial import, work through the restore
-> step below rather than skipping it.
-
-```bash
-# One-time setup; skip it if `git remote -v` already lists template
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-git fetch template main
-
-# Take the framework-owned paths wholesale from the new version.
-# This overwrites/adds template files but never deletes files you added.
-git checkout template/main -- .claude UPGRADING.md CHANGELOG.md docs/migration-guide-v1.1.md
-
-# The checkout is STAGED, not committed — so nothing is lost yet, and this
-# lists every framework file it changed:
-git diff --cached --stat -- .claude
-
-# Restore any file whose local edits you want to keep. This is one command per
-# file, deliberately: each is a decision between your version and the new one.
-git checkout HEAD -- .claude/docs/technical-preferences.md   # v1.0 config; v1.1 keeps config in project.yaml
-git checkout HEAD -- <any other file you customised>
-
-git status   # review what changed before committing
-```
-
-> **Restoring a file keeps your version of it in full — including whatever the
-> new release changed there.** For a file you edited lightly, it is usually
-> better to take the new version and re-apply your change on top than to keep
-> the old one wholesale. `git diff HEAD template/main -- <file>` shows what you
-> would be giving up.
-
-For `CLAUDE.md`, don't checkout — diff and merge by hand, keeping your
-engine/project content:
-
-```bash
-git diff HEAD template/main -- CLAUDE.md
-```
-
-`project.yaml` depends on where you are coming from, and the two cases need
-opposite actions:
-
-- **Upgrading from v1.0** (the case this section is about): you have no
-  `project.yaml` — it did not exist in v1.0. There is nothing to merge by hand,
-  and the checkout above deliberately does not fetch it. Build it from your
-  legacy files instead, which is what the converter is for:
-
-  ```bash
-  bash .claude/scripts/migrate-v1-config.sh --dry-run   # preview
-  bash .claude/scripts/migrate-v1-config.sh             # writes project.yaml
-  ```
-
-  If you skip this, `detect-gaps.sh` will nudge you at the next session start —
-  but do it here rather than discovering it later.
-
-- **Upgrading from v1.1 or later:** you already have a `project.yaml` holding
-  your settings. Treat it like `CLAUDE.md` — diff and merge by hand, never
-  checkout, or you will overwrite your own configuration:
-
-  ```bash
-  git diff HEAD template/main -- project.yaml
-  ```
-
----
-
-### Strategy B — Cherry-pick specific commits
-
-Best when: you only want one specific feature (e.g., just the new skill, not
-the full update).
-
-```bash
-# One-time setup; skip it if `git remote -v` already lists template
-git remote add template https://github.com/Donchitos/Claude-Code-Game-Studios.git
-git fetch template main
-
-# Cherry-pick the specific commit(s) you want
-git cherry-pick <commit-sha>
-```
-
-Commit SHAs for each version are listed in the version sections below.
-
----
-
-### Strategy C — Manual file copy
-
-Best when: you didn't use git to set up the template (just downloaded a zip).
-
-1. Download or clone the new version alongside your repo.
-2. Copy the files listed under **"Safe to overwrite"** directly — except any
-   file the list marks as yours, such as `.claude/docs/technical-preferences.md`.
-3. For files under **"Merge carefully"**, open both versions side-by-side
-   and manually merge the structural changes while keeping your content.
-
----
+This is the UE-only variant: update a project with `tools/ue/install.sh`, as `.claude/docs/ue-variant.md` describes, never by merging or copying upstream's files into it, which brings back the Godot and Unity files and undoes the variant's changes. The release sections below say what each release changed. Their file lists (Safe to Overwrite, Merge Carefully, Delete) are what `install.sh` does for you: it updates the files you have not changed, merges the ones you have, removes the ones a release deletes, and leaves out the files this variant removes, even where a list names them. What is left for you are the steps for the files it adds once and then leaves to you: `project.yaml`, `technical-preferences.md` and the registries.
 
 ## v1.2.0 → v1.3.0
 
@@ -267,9 +130,6 @@ studio-tests/                                ← three specs renamed with their
                                                Carefully
 ```
 
-With Strategy A2, also check out what this release changes outside `.claude`
-(your README aside): `git checkout template/main -- studio-tests docs/WORKFLOW-GUIDE.md docs/CLAUDE.md docs/skill-flow-diagrams.md docs/migration-guide-v1.1.md docs/engine-reference/README.md docs/engine-reference/web docs/engine-reference/godot docs/engine-reference/unity/VERSION.md docs/engine-reference/unreal/VERSION.md SECURITY.md`.
-
 Take `.claude/hooks/` and `.claude/scripts/` together, and before the
 `settings.json` step below: the new allow rules and the 1.3.0 skills name
 scripts 1.2.0 did not have.
@@ -277,10 +137,6 @@ scripts 1.2.0 did not have.
 ---
 
 ### Files: Merge Carefully
-
-**Strategy A:** the merge has already made these changes wherever git could,
-which is every file you never edited. Check each item instead of making it
-again. The steps are for files that conflicted, and for Strategies A2 and C.
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have:
@@ -446,9 +302,6 @@ In a Godot project, after adding `production/.gdignore`, delete the .import file
 (`find production -name '*.import' -delete`): Godot imported the evidence screenshots there as game resources,
 and a default export packed them into the game.
 
-With Strategy A2, also check out what this release changes outside `.claude`
-(your README aside): `git checkout template/main -- studio-tests production/.gdignore .worktreeinclude docs/WORKFLOW-GUIDE.md`.
-
 Take `.claude/hooks/` whole, not only its new files: a 1.1.3 `yaml-helper.sh`
 answers the new lookups (`resolve_setting modes.rigor` and the rest) with its
 usage line, so `/settings`, `/perf-profile` and the command the update notice
@@ -457,11 +310,6 @@ prints stop working, and the rebuilt skills lose their review and gate lines.
 ---
 
 ### Files: Merge Carefully
-
-**Strategy A:** the merge has already made these changes wherever git could,
-which is every file you never edited. Check each item instead of making it
-again (a hook entry added twice runs twice). The steps are for files that
-conflicted, and for Strategies A2 and C.
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have:
@@ -540,9 +388,8 @@ still pre-approves every shell command while it runs.
 **`docs/engine-reference/<engine>/`** — take the folder if your project uses
 the newer engine (Godot 4.7, Unreal 5.8) or has not pinned one yet. If your
 project stays on Godot 4.6 or Unreal 5.7, keep your current folder for that
-engine: the new one describes APIs your editor does not have. With Strategy A
-the merge takes the new folder without asking; only a file you edited (usually
-`VERSION.md`) conflicts. To keep yours, run `git checkout HEAD -- docs/engine-reference/<engine>/` before you commit the merge. Either way, run
+engine: the new one describes APIs your editor does not have. `install.sh` takes the new folder and merges
+the files you edited (usually `VERSION.md`); to keep your folder, run `git checkout HEAD -- docs/engine-reference/<engine>/` after the install. Either way, run
 `/setup-engine` again afterwards so `Installed at pin time` records your editor.
 
 **`.github/workflows/`** — a workflow `/test-setup` already wrote is not changed.
@@ -901,7 +748,7 @@ for this release.
 
 **Released:** 2026-09-24
 **Commit range:** `d056997..v1.1.1`
-**Key themes:** Fix for skills and agents failing to start outside auto mode ([#128](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/128))
+**Key themes:** Fix for skills and agents failing to start outside auto mode (upstream #128)
 
 ### What Changed
 
@@ -1022,10 +869,6 @@ CHANGELOG.md
 UPGRADING.md
 .gitignore        (adds project.local.yaml)
 ```
-
-> **Strategy A (git merge) protects you here automatically** — git flags that file
-> as a conflict because you both changed it. The manual-copy strategies do not:
-> a recursive copy overwrites it without a word.
 
 Your own tests under `tests/` and any tooling under `tools/` are yours; the
 template ships nothing into either, so nothing there is at risk.
